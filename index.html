@@ -1,0 +1,3513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雕塑定额计算表V11.06</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
+    <style>
+        :root { --primary: #1e293b; --accent: #b45309; --highlight: #2563eb; --money: #dc2626; --bg: #f8fafc; --card: #ffffff; --border: #cbd5e1; }
+        /* 布局优化：锁定屏幕高度，禁止 body 无限延伸 */
+        body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background-color: #eef2f7; color: #334155; padding: 12px; display: flex; justify-content: center; height: 100vh; box-sizing: border-box; margin: 0; overflow: hidden; }
+        .container { width: 100%; max-width: 1680px; height: 100%; display: flex; flex-direction: column; background: #eef2f7; border-radius: 10px; overflow: hidden; }
+        
+        /* Header */
+        .part-header { background: #ffffff; color: #0f172a; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; flex-shrink: 0; box-shadow: 0 8px 24px rgba(15,23,42,0.06); }
+        .app-toolbar { display: grid; grid-template-columns: minmax(220px, 1.1fr) minmax(180px, 0.75fr) minmax(210px, 0.9fr) minmax(500px, 1.6fr); gap: 12px; align-items: end; }
+        .header-field label { display:block; font-size:0.72rem; color:#64748b; font-weight:700; margin-bottom:5px; }
+        .title-input-main, .part-input, .archive-select { background: #fff; border: 1px solid #cbd5e1; color: #0f172a; border-radius: 6px; padding: 8px 10px; height: 36px; box-sizing: border-box; width: 100%; font-weight: 700; font-size: 0.95rem; transition: all 0.2s; }
+        .title-input-main:focus, .part-input:focus, .archive-select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+        
+        /* Layout：设置内部独立滚动 */
+        .main-grid { display: grid; grid-template-columns: minmax(640px, 1.25fr) minmax(460px, 0.75fr); gap: 12px; flex: 1; min-height: 0; overflow: hidden; padding-top: 12px; }
+        .panel { padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: #ffffff; display: flex; flex-direction: column; overflow-y: auto; height: 100%; box-sizing: border-box; box-shadow: 0 8px 24px rgba(15,23,42,0.04); }
+        .panel:last-child { border-right: 1px solid var(--border); background: #ffffff; }
+        h3 { margin-top: 0; color: var(--primary); font-size: 1.1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; font-weight: 700; flex-shrink: 0; }
+
+        /* Dashboard */
+        .control-dashboard { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; flex-shrink: 0; }
+        .dashboard-row { display: grid; gap: 12px; margin-bottom: 10px; }
+        .cols-3 { grid-template-columns: minmax(180px, 1fr) minmax(150px, 0.75fr) minmax(180px, 1fr); }
+        .cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .dash-label { display: block; font-size: 0.75rem; font-weight: 700; color: #1e40af; margin-bottom: 4px; }
+        .dash-input { width: 100%; height: 38px; padding: 8px 10px; border: 1px solid #93c5fd; border-radius: 6px; font-size: 0.95rem; font-weight: 500; background: #fff; box-sizing: border-box; }
+        .native-material-select { position:absolute; opacity:0; pointer-events:none; height:0; padding:0; border:0; }
+        .material-picker { position:relative; }
+        .material-picker-trigger { width:100%; height:44px; border:1px solid #93c5fd; background:#fff; border-radius:8px; display:flex; align-items:center; gap:9px; padding:4px 10px 4px 6px; cursor:pointer; box-sizing:border-box; text-align:left; }
+        .material-picker-trigger:hover { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,0.08); }
+        .material-picker-text { flex:1; font-size:0.94rem; font-weight:700; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .material-picker-caret { color:#64748b; font-size:0.8rem; }
+        .material-icon { width:34px; height:34px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; background:linear-gradient(135deg, var(--mat-bg-a, #dbeafe), var(--mat-bg-b, #bfdbfe)); box-shadow:inset 0 1px 0 rgba(255,255,255,0.66), 0 2px 7px rgba(15,23,42,0.14); color:var(--mat-ink, #0f172a); overflow:hidden; }
+        .material-icon svg { width:30px; height:30px; display:block; stroke:currentColor; fill:none; stroke-width:2.15; stroke-linecap:round; stroke-linejoin:round; }
+        .material-icon svg .fill { fill:currentColor; stroke:none; opacity:.9; }
+        .material-icon svg .soft-fill { fill:currentColor; stroke:none; opacity:.24; }
+        .material-picker-menu { position:absolute; left:0; top:calc(100% + 6px); width:min(560px, calc(100vw - 44px)); max-height:330px; overflow:auto; display:none; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:7px; background:#fff; border:1px solid #cbd5e1; border-radius:10px; padding:8px; box-shadow:0 16px 40px rgba(15,23,42,0.18); z-index:30; }
+        .material-picker.open .material-picker-menu { display:grid; }
+        .material-option { border:1px solid #e2e8f0; background:#f8fafc; border-radius:8px; padding:8px; display:flex; align-items:center; gap:9px; cursor:pointer; text-align:left; min-width:0; min-height:52px; }
+        .material-option:hover { border-color:#93c5fd; background:#eff6ff; }
+        .material-option.active { border-color:#2563eb; background:#dbeafe; box-shadow:0 0 0 2px rgba(37,99,235,0.10); }
+        .material-option-name { font-size:0.82rem; font-weight:700; color:#1e293b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .material-option-meta { font-size:0.68rem; color:#64748b; margin-top:2px; }
+        
+        /* Process Steps */
+        .section-title { font-size: 0.85rem; font-weight: bold; color: #64748b; margin: 15px 0 10px 0; border-left: 3px solid #cbd5e1; padding-left: 8px; flex-shrink: 0; }
+        .process-chain { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+        .step-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; transition: all 0.3s; }
+        .step-card:hover { border-color: #94a3b8; background: #f8fafc; }
+        .step-left { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
+        .step-right { display: flex; align-items: center; gap: 10px; }
+        .step-title { font-weight: 600; color: #334155; font-size: 0.9rem; width: 100px; }
+        .step-select { padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem; width: 180px; }
+        .price-tag { font-family: "Consolas", monospace; color: var(--money); font-weight: bold; background: #fee2e2; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; min-width: 80px; text-align: center; }
+        .step-disabled { opacity: 0.4 !important; pointer-events: none; filter: grayscale(1); background: #e2e8f0; }
+
+        /* Preview */
+        .live-preview { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 14px; margin-top: 14px; flex-shrink: 0; }
+        .preview-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem; color: #92400e; }
+        .preview-total { font-size: 1.2rem; font-weight: bold; border-top: 1px dashed #f59e0b; padding-top: 10px; margin-top: 8px; color: #b45309; display: flex; justify-content: space-between; }
+        .btn-add { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 12px; font-size: 1rem; transition: background 0.3s;}
+        .btn-add:hover { filter: brightness(1.2); }
+        .btn-add:disabled { background: #94a3b8 !important; cursor: not-allowed; filter: none; }
+        .btn-cancel { width: 100%; padding: 9px 12px; background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 8px; display: none; }
+        .btn-cancel:hover { background: #e2e8f0; }
+        .input-warnings { display:none; margin-top: 10px; padding: 9px 10px; background:#fef2f2; border:1px solid #fecaca; border-radius:6px; color:#b91c1c; font-size:0.8rem; line-height:1.5; }
+
+        /* Right Panel */
+        table { width: 100%; border-collapse: collapse; background: #fff; font-size: 0.8rem; border: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; color: #475569; padding: 10px 8px; text-align: left; border-bottom: 2px solid #e2e8f0; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+        td { padding: 8px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+        .desc-cell { color:#64748b; font-size:0.75rem; display:block; margin-top:4px; white-space: pre-wrap; line-height: 1.4; }
+        .btn-excel { background: #15803d; color: white; padding: 6px 15px; border-radius: 4px; border:none; cursor:pointer; font-weight:bold; font-size: 0.85rem;}
+        
+        /* New Buttons Style */
+        .action-btn { background:none; border:none; cursor:pointer; font-size:1.05rem; padding: 3px 5px; border-radius: 4px; transition: background 0.2s; }
+        .action-btn:hover { background: #e2e8f0; }
+        .btn-edit { color: #0284c7; }
+        .btn-copy { color: #0f766e; }
+        .btn-del { color: #ef4444; font-weight: bold; font-size: 1.2rem; }
+        .btn-move { color: #475569; font-weight: bold; } 
+        
+        /* Drag & Drop Classes */
+        .draggable-row { cursor: grab; transition: background-color 0.2s; }
+        .draggable-row:active { cursor: grabbing; }
+        .drag-handle { color: #94a3b8; cursor: grab; margin-right: 8px; font-size: 1.2rem; vertical-align: middle; }
+        .drag-over { border-top: 2px solid var(--highlight) !important; background-color: #f8fafc; }
+
+        .supervision-tag { font-size: 0.75rem; color: #b45309; background: #ffedd5; padding: 2px 6px; border-radius: 4px; margin-left: auto; }
+        .coef-badge { font-size: 0.7rem; background: #e0e7ff; color: #3730a3; padding: 1px 4px; border-radius: 3px; margin-left: 5px; font-weight: bold; display:none;}
+        
+        .project-tools select { background: #fff; color: #0f172a; border: 1px solid #cbd5e1; padding: 7px 8px; border-radius: 6px; outline:none; min-width: 190px; height: 36px; box-sizing: border-box;}
+        .project-tools select option { color: #333; }
+        .project-tools { display:flex; gap: 6px; align-items:center; justify-content:flex-end; flex-wrap:wrap; }
+        .project-tools button { background:#0ea5e9; color:#fff; border:none; padding:7px 10px; border-radius:6px; cursor:pointer; font-weight:bold; margin-left: 0; transition: all 0.2s; white-space: nowrap; height: 36px; }
+        .project-tools button:hover { filter: brightness(1.1); }
+        .project-tools button:disabled { opacity:0.45; cursor:not-allowed; filter:none; }
+        .project-tools button.del-proj { background:#ef4444; padding:5px 8px; }
+        .project-tools input[type="file"] { display:none; }
+        .toolbar-actions { align-self:end; }
+        .version-badge { color:#64748b; background:#f1f5f9; border:1px solid #e2e8f0; padding:7px 9px; border-radius:6px; height:36px; box-sizing:border-box; display:inline-flex; align-items:center; font-size:0.78rem; font-weight:700; }
+        .tool-card { background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:12px; margin-bottom:14px; flex-shrink:0; }
+        .tool-card-title { font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .tool-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .tool-row select, .tool-row input { flex:1; min-width:120px; padding:7px 8px; border:1px solid #cbd5e1; border-radius:5px; background:#fff; box-sizing:border-box; }
+        .mini-btn { border:none; border-radius:5px; padding:7px 10px; font-weight:700; cursor:pointer; background:#475569; color:#fff; }
+        .mini-btn:hover { filter:brightness(1.08); }
+        .mini-btn.secondary { background:#e2e8f0; color:#334155; }
+        .mini-btn.green { background:#15803d; color:#fff; }
+        .mini-btn.blue { background:#0369a1; color:#fff; }
+        .mini-btn.red { background:#dc2626; color:#fff; }
+        .status-pill { font-size:0.72rem; color:#475569; background:#f1f5f9; border:1px solid #e2e8f0; padding:2px 6px; border-radius:999px; }
+        .detail-row td { background:#f8fafc; padding:0; }
+        .detail-box { padding:12px 16px 14px 40px; border-top:1px dashed #cbd5e1; }
+        .detail-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:8px; margin-bottom:10px; }
+        .detail-chip { background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:8px; }
+        .detail-chip span { display:block; font-size:0.72rem; color:#64748b; margin-bottom:3px; }
+        .detail-chip strong { color:#0f172a; font-size:0.9rem; }
+        .detail-formula { font-size:0.78rem; color:#475569; line-height:1.55; background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:9px 10px; white-space:pre-wrap; }
+        .modal-backdrop { position:fixed; inset:0; background:rgba(15,23,42,0.42); display:none; align-items:center; justify-content:center; z-index:20; padding:20px; box-sizing:border-box; }
+        .modal { width:min(920px, 96vw); max-height:88vh; overflow:auto; background:#fff; border-radius:8px; box-shadow:0 24px 70px rgba(15,23,42,0.28); border:1px solid #cbd5e1; }
+        .modal-header { padding:14px 18px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc; }
+        .modal-title { font-size:1rem; font-weight:800; color:#0f172a; }
+        .modal-close { border:none; background:transparent; font-size:1.4rem; cursor:pointer; color:#64748b; }
+        .modal-body { padding:16px 18px 18px; }
+        .quality-list { display:flex; flex-direction:column; gap:8px; margin:10px 0 14px; }
+        .quality-item { border:1px solid #e2e8f0; border-left-width:4px; border-radius:6px; padding:9px 10px; background:#fff; font-size:0.84rem; color:#334155; }
+        .quality-item.warn { border-left-color:#f59e0b; background:#fffbeb; }
+        .quality-item.danger { border-left-color:#dc2626; background:#fef2f2; }
+        .quality-item.ok { border-left-color:#16a34a; background:#f0fdf4; }
+        .export-options { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px; }
+        .export-card { border:1px solid #cbd5e1; border-radius:6px; padding:12px; background:#fff; }
+        .export-card h4 { margin:0 0 6px; color:#0f172a; font-size:0.9rem; }
+        .export-card p { margin:0 0 10px; color:#64748b; font-size:0.76rem; line-height:1.45; }
+        @media (max-width: 1150px) {
+            .app-toolbar { grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.8fr) minmax(210px, 0.9fr); }
+            .toolbar-actions { grid-column: 1 / -1; justify-content: flex-start; }
+            .main-grid { grid-template-columns: 1fr; overflow-y: auto; }
+            .panel { min-height: 520px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="part-header">
+        <div class="app-toolbar">
+            <div class="header-field">
+                <label>项目名称</label>
+                <input type="text" id="project-title" class="title-input-main" value="****项目" title="更改名称后请点击【保存】">
+            </div>
+            <div class="header-field">
+                <label>当前核算单体</label>
+                <input type="text" id="current-part" class="part-input" value="主雕塑" title="点击修改单体/部位名称">
+            </div>
+            <div class="header-field">
+                <label>本机项目存档</label>
+                <select id="project-selector" class="archive-select" onchange="loadProject(this.value)">
+                    <option value="">加载历史项目...</option>
+                </select>
+            </div>
+            <div class="project-tools toolbar-actions">
+                <button id="btn-undo" onclick="undoAction()" title="撤销上一步（Ctrl+Z）" disabled>撤销</button>
+                <button id="btn-redo" onclick="redoAction()" title="恢复撤销（Ctrl+Y / Ctrl+Shift+Z）" disabled>恢复</button>
+                <button id="btn-save-project" style="background:#10b981;" onclick="manualSave()" title="保存到本机浏览器的项目存档">保存</button>
+                <button onclick="createNewProject()" title="建立一个新的空白项目">新建</button>
+                <button onclick="exportProjectData()" title="导出一个可导入恢复的项目文件">导出项目</button>
+                <button onclick="promptImportProject()" title="导入之前导出的项目文件">导入项目</button>
+                <input type="file" id="project-import-file" accept="application/json,.json" onchange="handleImportFile(event)">
+                <button class="del-proj" onclick="delProject()" title="永久删除当前项目">删除</button>
+                <span class="version-badge">V11.06</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-grid">
+        <div class="panel">
+            
+            <div class="control-dashboard">
+                <div class="dashboard-row cols-3">
+                    <div>
+                        <label class="dash-label">清单分类</label>
+                        <select id="global-cat" class="dash-input" onchange="updateCat()">
+                            <option value="art">艺术装置 (定额)</option>
+                            <option value="eng">工程装修 (按实)</option>
+                            <option value="prop">软装道具 (按实)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="dash-label">📏 展开面积(m²)</label>
+                        <input type="number" id="global-area" class="dash-input" placeholder="0.00" value="1" oninput="calcAll()">
+                    </div>
+                    <div id="div-form">
+                        <label class="dash-label">🗿 定额形态</label>
+                        <select id="global-form" class="dash-input" onchange="calcAll()">
+                            <option value="round">圆雕 (立体)</option>
+                            <option value="high">高浮雕</option>
+                            <option value="low">浅浮雕</option>
+                            <option value="flat">平浮雕</option>
+                            <option value="line">✍️ 阴阳刻线</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="dashboard-row cols-3" id="art-dim-row">
+                    <div>
+                        <label class="dash-label">长(m)</label>
+                        <input type="number" id="art-dim-l" class="dash-input" min="0" step="0.01" oninput="calcAll()">
+                    </div>
+                    <div>
+                        <label class="dash-label">宽(m)</label>
+                        <input type="number" id="art-dim-w" class="dash-input" min="0" step="0.01" oninput="calcAll()">
+                    </div>
+                    <div>
+                        <label class="dash-label">高(m)</label>
+                        <input type="number" id="art-dim-h" class="dash-input" min="0" step="0.01" oninput="calcAll()">
+                    </div>
+                </div>
+
+                <div class="dashboard-row cols-3" id="material-row">
+                    <div>
+                        <label class="dash-label" style="color:#059669;">主材选择</label>
+                        <select id="step3-mat" class="dash-input native-material-select" onchange="updateStep3()"></select>
+                        <div class="material-picker" id="material-picker">
+                            <button type="button" class="material-picker-trigger" onclick="toggleMaterialPicker(event)">
+                                <span class="material-icon" id="material-picker-icon"></span>
+                                <span class="material-picker-text" id="material-picker-text">选择主材</span>
+                                <span class="material-picker-caret">▼</span>
+                            </button>
+                            <div class="material-picker-menu" id="material-picker-menu"></div>
+                        </div>
+                    </div>
+                    <div id="div-process">
+                        <label class="dash-label" style="color:#059669;">🔥 制作工艺</label>
+                        <select id="step3-process" class="dash-input" onchange="handleProcessChange()"></select>
+                    </div>
+                    <div id="div-thk">
+                        <label class="dash-label" style="color:#059669;">📐 厚度(mm)</label>
+                        <input type="number" id="step3-thk" class="dash-input" placeholder="默认" value="3" oninput="calcAll()">
+                    </div>
+                    <!-- 新增网材专属参数 -->
+                    <div id="div-mesh-params" style="display:none; gap:10px;">
+                        <div style="flex:1;">
+                            <label class="dash-label" style="color:#059669;">🧶 丝径(mm)</label>
+                            <input type="number" id="step3-mesh-wire" class="dash-input" placeholder="2" value="2" step="0.1" oninput="calcAll()">
+                        </div>
+                        <div style="flex:1;">
+                            <label class="dash-label" style="color:#059669;">🕳️ 孔距(mm)</label>
+                            <input type="text" id="step3-mesh-hole" class="dash-input" placeholder="50x50" value="50x50" oninput="calcAll()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">🔧 专业工序描述</div>
+            <div class="process-chain" id="process-container">
+                <div class="step-card" id="card-step1">
+                    <div class="step-left">
+                        <input type="checkbox" id="step1-check" style="accent-color:var(--highlight);" checked onchange="toggleStep('step1')">
+                        <span class="step-title">1. 艺术造型</span>
+                        <select id="step1-method" class="step-select" onchange="calcAll()">
+                            <option value="clay">🤲 传统泥塑精雕</option>
+                            <option value="digital" selected>💻 3D数字精模构建</option>
+                        </select>
+                        <span id="step1-coef-display" class="coef-badge"></span>
+                    </div>
+                    <div class="step-right">
+                        <span class="supervision-tag" id="sup-val-1">监制 25%: ¥0</span>
+                        <span class="price-tag" id="step1-price">¥0</span>
+                    </div>
+                </div>
+
+                <div class="step-card" id="card-step2">
+                    <div class="step-left">
+                        <input type="checkbox" id="step2-check" style="accent-color:var(--highlight);" checked onchange="toggleStep('step2')">
+                        <span class="step-title">2. 制模定样</span>
+                        <select id="step2-type" class="step-select" onchange="calcAll()">
+                            <option value="plaster">高强石膏翻制</option>
+                            <option value="resin" selected>复合树脂翻制</option>
+                            <option value="foam">高密泡沫CNC</option>
+                        </select>
+                    </div>
+                    <div class="step-right">
+                        <span class="supervision-tag" id="sup-val-2">监制 10%: ¥0</span>
+                        <span class="price-tag" id="step2-price">¥0</span>
+                    </div>
+                </div>
+
+                <div class="step-card" id="card-step4" style="background:#faf5ff; border-color:#e9d5ff;">
+                    <div class="step-left">
+                        <input type="checkbox" id="step4-check" style="accent-color:#9333ea;" checked onchange="toggleStep('step4')">
+                        <span class="step-title" style="color:#7e22ce;">3. 表面处理</span>
+                        <select id="step4-finish" class="step-select" style="width:130px;" onchange="handleFinishChange()">
+                            <option value="1.0">标准/拉丝处理</option>
+                            <option value="1.2">防腐氟碳涂装</option>
+                            <option value="1.3">高级镜面抛光</option>
+                            <option value="custom">✍️ 自定义...</option>
+                        </select>
+                        <div id="custom-finish-container" style="display:none; align-items:center; gap:5px;">
+                            <input type="text" id="step4-finish-text" class="step-select" style="width: 100px;" placeholder="工艺描述" oninput="calcAll()">
+                            <input type="number" id="step4-finish-rate" class="step-select" style="width: 60px;" placeholder="系数" value="1.0" step="0.1" oninput="calcAll()">
+                        </div>
+                    </div>
+                    <div class="step-right">
+                        <span class="supervision-tag" id="sup-val-4" style="color:#7e22ce; background:#f3e8ff;">监制 10%: ¥0</span>
+                        <span class="price-tag" id="step4-price" style="background:#f3e8ff; color:#7e22ce;">¥0</span>
+                    </div>
+                </div>
+
+                <div class="step-card" id="card-step5">
+                    <div class="step-left">
+                        <input type="checkbox" id="step5-check" style="accent-color:var(--highlight);" onchange="toggleStep('step5')">
+                        <span class="step-title">4. 艺术彩绘</span>
+                        <select id="step5-level" class="step-select" onchange="calcAll()">
+                            <option value="simple">简单彩绘</option>
+                            <option value="general">一般彩绘</option>
+                            <option value="complex">复杂彩绘</option>
+                        </select>
+                    </div>
+                    <div class="step-right">
+                        <span class="supervision-tag" id="sup-val-5">监制 25%: ¥0</span>
+                        <span class="price-tag" id="step5-price">¥0</span>
+                    </div>
+                </div>
+
+                <div class="step-card" id="card-step3" style="background:#f0f9ff; border-color:#bae6fd;">
+                    <div class="step-left">
+                        <input type="checkbox" id="step3-check" style="accent-color:var(--highlight);" checked onchange="toggleStep('step3')">
+                        <span class="step-title" style="color:#0284c7;">5. 成品制作</span>
+                        <span style="font-size:0.8rem; color:#0369a1; margin-left:2px;">配合:</span>
+                        <input type="text" id="step3-coop" class="step-select" style="width:95px; border-color:#bae6fd; color:#0369a1; padding:3px;" value="土建/景观专业" title="配合安装的专业">
+                        <span style="font-size:0.8rem; color:#0369a1; margin-left:2px;">连接:</span>
+                        <input type="text" id="step3-base" class="step-select" style="width:95px; border-color:#bae6fd; color:#0369a1; padding:3px;" value="基础预埋件" title="与之连接固定的构件">
+                    </div>
+                    <div class="step-right">
+                        <span class="supervision-tag" id="sup-val-3">监制 10%: ¥0</span>
+                        <span class="price-tag" id="step3-price" style="background:#e0f2fe; color:#0369a1;">¥0</span>
+                    </div>
+                </div>
+
+                <div class="step-card" id="card-step6" style="border-color:#f59e0b;">
+                    <div class="step-left">
+                        <input type="checkbox" id="step6-check" style="accent-color:#d97706;" checked onchange="toggleStep('step6')">
+                        <span class="step-title" style="color:#b45309;">6. 艺术监制</span>
+                        <select id="step6-level" class="step-select" onchange="calcAll()" style="width:160px; background:#fffbeb; border-color:#fcd34d; color:#b45309; font-weight:bold;">
+                            <option value="1.0">高级职称/副高 (100%)</option>
+                            <option value="0.9" selected>中级职称 (下浮10%)</option>
+                            <option value="0.8">初级职称 (下浮20%)</option>
+                        </select>
+                    </div>
+                    <div class="step-right">
+                        <span class="price-tag" id="step6-price" style="background:#fef3c7; color:#b45309;">¥0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="live-preview">
+                <div class="preview-row"><span>1. 艺术造型费:</span><span id="prev-c1">0</span></div>
+                <div class="preview-row"><span>2. 制模定样费:</span><span id="prev-c2">0</span></div>
+                <div class="preview-row"><span>3. 表面处理费:</span><span id="prev-c4">0</span></div>
+                <div class="preview-row"><span>4. 艺术彩绘费:</span><span id="prev-c5">0</span></div>
+                <div class="preview-row"><span>5. 成品制作费:</span><span id="prev-c3">0</span></div>
+                <div class="preview-row" style="color:#b45309;"><span>6. 艺术监制 (汇总):</span><span id="prev-sup">0</span></div>
+                <div class="preview-row" style="border-top:1px dashed #cbd5e1; margin-top:5px; padding-top:5px;">
+                    <span>计价核算面积:</span><span id="prev-calc-area" style="font-weight:bold; color:#334155;">0.00 m²</span>
+                </div>
+                <div class="preview-row">
+                    <span>预估总重:</span><span id="prev-weight" style="font-weight:bold; color:#334155;">0.00 kg</span>
+                </div>
+                <div class="preview-total">
+                    <span>合计总造价:</span>
+                    <span id="prev-total">¥0</span>
+                </div>
+                <div id="input-warnings" class="input-warnings"></div>
+                <button id="btn-add-main" class="btn-add" onclick="addToList()">+ 加入清单</button>
+                <button id="btn-cancel-edit-main" class="btn-cancel" onclick="cancelEdit()">取消修改</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink: 0;">
+                <h3 style="margin-bottom:0; border-bottom:none;">🦴 内部骨架</h3>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <button id="btn-cancel-edit-frame" class="btn-cancel" style="width:auto; padding:6px 10px; margin:0;" onclick="cancelEdit()">取消修改</button>
+                    <button id="btn-add-frame" class="btn-add" style="width:auto; padding:6px 12px; margin:0; font-size:0.8rem; background:#475569;" onclick="addFrame()">+ 添加骨架</button>
+                </div>
+            </div>
+            <div style="background:#fff; padding:10px; border-radius:6px; border:1px solid #e2e8f0; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:15px; flex-shrink: 0;">
+                <div>
+                    <label>型材</label>
+                    <select id="frame-cat" style="width:100%;" onchange="renderFrameProfiles()">
+                        <option value="sq">🔲 方管</option>
+                        <option value="rect">▬ 矩形管</option>
+                        <option value="rd">⚪ 圆管</option>
+                        <option value="ang">📐 角钢</option>
+                        <option value="chn">C 槽钢</option>
+                    </select>
+                </div>
+                <div>
+                    <label>规格</label>
+                    <select id="frame-name" style="width:100%;" onchange="updateFrameCalc()"></select>
+                </div>
+                <div>
+                    <label>长度 (m)</label>
+                    <input type="number" id="frame-len" style="width:100%;" placeholder="0" oninput="updateFrameCalc()">
+                </div>
+                <div style="grid-column:span 3; text-align:right; font-size:0.85rem; color:#64748b;">
+                    米重: <span id="frame-w">0</span> kg/m &nbsp;|&nbsp; 合计: <span id="frame-t" style="color:#0f172a; font-weight:bold;">0</span> kg
+                </div>
+            </div>
+
+            <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center; flex-shrink: 0;">
+                <h3 style="margin:0; border:none;">📑 清单预览</h3>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button class="btn-excel" onclick="openExportCenter()">📤 导出中心</button>
+                </div>
+            </div>
+            
+            <div style="flex:1; overflow-y:auto; border:1px solid #e2e8f0; border-radius:6px; margin-top:10px; background:#fff; min-height: 150px;">
+                <table id="main-table">
+                    <thead>
+                        <tr>
+                            <th width="35%">部件名称</th>
+                            <th width="25%">工程量 / 参数</th>
+                            <th width="22%">金额(元)</th>
+                            <th width="18%">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+            <div style="padding:15px; background:#fff; border-top:1px solid #e2e8f0; text-align:right; flex-shrink: 0; box-shadow: 0 -4px 10px rgba(0,0,0,0.02);">
+                <div style="font-size:0.9rem;">总重量: <span id="final-weight" style="font-weight:bold;">0.00</span> kg</div>
+                <div style="font-size:1.1rem; color:var(--money); font-weight:bold; margin-top:5px;">总造价: <span id="final-cost">¥0</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="app-modal-backdrop" class="modal-backdrop">
+    <div class="modal">
+        <div class="modal-header">
+            <div id="app-modal-title" class="modal-title">导出中心</div>
+            <button class="modal-close" onclick="closeAppModal()" title="关闭">×</button>
+        </div>
+        <div id="app-modal-body" class="modal-body"></div>
+    </div>
+</div>
+
+<script>
+    // === 1. 文案模板 (完全参考工艺描述表) ===
+    const TEMPLATES = {
+        step1: "艺术造型：\n空间重构：方案1:1全尺度二次创作与视觉矫正\n精细塑造：深度刻画表面肌理、神态及光影关系\n结构支撑：构建高强度骨架，保障塑造期结构稳定\n工艺手段：【{method}】",
+        
+        step2: "制模定样：\n型体固化：软质造型向硬质生产基准的高精度转化\n模具修整：内模精修与隔离处理，确立生产标准\n复刻工艺：采用【{type}】多层翻制工艺，保障模具零收缩与高强度",
+        
+        step3_base: "成品制作：\n工艺：【{proc}】\n设计方案：模型深化、图纸深化、技术文件\n供应安装：【该装置】的供应、运输、安装全流程服务\n核心制作：【该装置】的生产制作（含{detail}）\n配合安装：配合【{install_coop}】安装、固定、调试（含现场吊装机械及脚手架工作）\n连接固定：【该装置】与【{connect_base}】固定连接（含法兰连接、拼缝修补、开孔、机电位预留、封边及一切安装附件）\n面层处理：满足设计要求【{finish}】效果处理{extra}",
+        
+        stepPaint: "艺术彩绘：\n视觉工程：基于美学体系的手工绘色与肌理构建\n色彩实施：采用高耐候颜料进行多层罩染与过渡\n长效防护：实施抗氧化及防紫外线固色保护处理",
+        
+        stepSup: "原作者监制：\n保障创意还原、工艺质量监督、关键环节把控、确保整体艺术性与独特性\n包含：【{parts}】"
+    };
+
+    // === 2. 核心数据 (定额2020) ===
+    const QUOTA = {
+        step1: { round: 13401, high: 10847, low: 8868, flat: 6117, line: 0 },
+        step2: { 
+            plaster: { round: 2527, high: 2007, low: 1673, flat: 1383, line: 0 },
+            resin: { round: 3188, high: 2643, low: 2193, flat: 1860, line: 0 }, 
+            foam: { round: 3188, high: 2643, low: 2193, flat: 1860, line: 0 } 
+        },
+        step3: { 
+            forging: {
+                "304": { base: {round:11342, high:10482, low:10006, flat:9249, line:4516}, matPrice:15, stdThk:3 },
+                "316": { base: {round:11342, high:10482, low:10006, flat:9249, line:4516}, matPrice:25, stdThk:3 },
+                "al":  { base: {round:9636,  high:8765,  low:8386,  flat:7878, line:3867}, matPrice:25, stdThk:3 },
+                "cu":  { base: {round:10820, high:10179, low:9436,  flat:8813, line:4912}, matPrice:33, stdThk:3 },
+                "weath":{base: {round:8817,  high:8447,  low:7976,  flat:6752, line:4052}, matPrice:7,  stdThk: 4 }
+            },
+            casting: {
+                "304": { base: {round:16415, high:15584, low:14372, flat:13326, line:0}, matPrice:0, stdThk:7 },
+                "316": { base: {round:16415, high:15584, low:14372, flat:13326, line:0}, matPrice:0, stdThk:7 },
+                "al":  { base: {round:13597, high:13214, low:12332, flat:11105, line:0}, matPrice:0, stdThk:7 },
+                "cu":  { base: {round:16066, high:15691, low:13895, flat:13290, line:0}, matPrice:0, stdThk:7 },
+                "tin": { base: {round:17758, high:17069, low:14933, flat:14466, line:0}, matPrice:0, stdThk:7 },
+                "iron":{ base: {round:13941, high:13388, low:12318, flat:11485, line:0}, matPrice:0, stdThk:7 }
+            },
+            other: {
+                "frp": { base: {round:3347, high:2943, low:2464, flat:2091, line:0}, matPrice:0, stdThk:5 },
+                "stone":{base: {round:15026, high:12320, low:7768, flat:4732, line:3358}, matPrice:0, stdThk:50},
+                "conc": {base: {round:4206, high:3734, low:3147, flat:2646, line:0}, matPrice:0, stdThk:50},
+                "wood": {base: {round:12363, high:9931, low:5679, flat:4602, line:3263}, matPrice:0, stdThk:50}, 
+                "resin_trans": {base: {round:3347, high:2943, low:2464, flat:2091, line:0}, matPrice:0, stdThk:5}, 
+                "acrylic": {base: {round:0, high:0, low:0, flat:0, line:0}, matPrice:0, stdThk:10},
+                "pc": {base: {round:0, high:0, low:0, flat:0, line:0}, matPrice:0, stdThk:10},
+                "glass": {base: {round:0, high:0, low:0, flat:0, line:0}, matPrice:0, stdThk:12},
+                "resin_uv": {base: {round:0, high:0, low:0, flat:0, line:0}, matPrice:0, stdThk:10},
+                "wire_steel": {base: {round:0, high:0, low:0, flat:0, line:0}, matPrice:0, stdThk:1},
+                "wire_al": {base: {round:0, high:0, low:0, flat:0, line:0}, matPrice:0, stdThk:1},
+                "paint": {base: {round:0, high:0, low:0, flat:0, line:0}, matPrice:0, stdThk:0},
+                "custom_leaves": {base: {round:0, high:0, low:0, flat:0, line:0}, matPrice:0, stdThk:0}
+            }
+        },
+        step4: { simple: 335, general: 640, complex: 947 },
+        supervision: { model: 0.25, forging: 0.10, casting: 0.07, stone: 0.15, frp: 0.10, paint: 0.25, other: 0.10, mold: 0.10 }
+    };
+
+    const MATERIALS = {
+        art: [
+            { id:"304", n:"◆ 304不锈钢", d:7.93, p:["forging","casting"] },
+            { id:"316", n:"◆ 316L不锈钢", d:7.98, p:["forging","casting"] },
+            { id:"weath", n:"■ 耐候钢", d:7.85, p:["forging"] },
+            { id:"al", n:"△ 铝合金", d:2.71, p:["forging","casting"] },
+            { id:"cu", n:"● 黄铜/紫铜", d:8.60, p:["forging","casting"] },
+            { id:"tin", n:"◉ 锡青铜", d:8.80, p:["casting"] },
+            { id:"iron", n:"■ 铁", d:7.20, p:["casting"] },
+            { id:"frp", n:"◇ 玻璃钢", d:1.60, p:["other"] },
+            { id:"resin_trans", n:"○ 透明树脂", d:1.20, p:["other"] },
+            { id:"acrylic", n:"□ 亚克力 (PMMA)", d:1.18, p:["other"] },
+            { id:"pc", n:"▣ PC耐力板", d:1.20, p:["other"] },
+            { id:"glass", n:"◌ 艺术玻璃", d:2.50, p:["other"] },
+            { id:"resin_uv", n:"▦ 光敏树脂", d:1.15, p:["other"] },
+            { id:"wire_steel", n:"≋ 钢丝网", d:7.85, p:["other"] },
+            { id:"wire_al", n:"≋ 铝丝网", d:2.71, p:["other"] },
+            { id:"stone", n:"▲ 石材", d:2.70, p:["other"] },
+            { id:"conc", n:"▥ 艺术水泥", d:2.40, p:["other"] },
+            { id:"custom_leaves", n:"✤ 定制仿真树叶", d:0, p:["other"] },
+            { id:"wood", n:"▧ 木雕", d:0.80, p:["other"] },
+            { id:"paint", n:"✎ 高耐候专用彩绘颜料", d:0, p:["paint_only"] } 
+        ],
+        eng: [
+            { id:"tile", n:"▦ 陶瓷地砖", d:2.40, t:10, desc:"楼地面块料面层铺贴。含基层清理、试排弹线、切割铺贴、留缝、勾缝、擦缝、清理养护。", audit:"按设计图纸、排版图、材料封样、到货单、现场实测铺贴面积及验收记录审核" },
+            { id:"porcelain_slab", n:"▣ 岩板/大板砖", d:2.45, t:12, desc:"大规格板材面层铺贴。含基层处理、排版放线、切割开孔、粘结铺贴、勾缝、清理养护。", audit:"按材料规格、排版深化图、加工单、现场实铺面积、损耗说明及验收记录审核" },
+            { id:"marble", n:"▲ 天然大理石", d:2.70, t:18, desc:"石材面层铺贴。含基层清理、选板试拼、切割磨边、防护处理、铺贴、擦缝、清理养护。", audit:"按石材荒料/板材单、加工单、排版图、现场实测面积、厚度抽查及验收记录审核" },
+            { id:"granite", n:"▲ 花岗岩", d:2.80, t:25, desc:"石材面层铺装。含基层清理、试拼编号、切割磨边、防护处理、铺装、勾缝、清理养护。", audit:"按设计规格、采购单、加工单、现场实测面积、厚度抽查和验收记录审核" },
+            { id:"terrazzo", n:"▥ 水磨石/无机磨石", d:2.30, t:20, desc:"磨石面层施工。含基层处理、分格嵌条、铺设成型、养护、打磨、清理、防护。", audit:"按设计做法、样板确认、施工记录、现场实测面积和验收记录审核" },
+            { id:"microcement", n:"✧ 微水泥/艺术涂料", d:1.80, t:3, desc:"装饰涂层面层施工。含基层处理、批刮找平、分遍施工、打磨、罩面保护。", audit:"按样板确认、施工遍数记录、现场实测展开面积、材料用量及验收记录审核" },
+            { id:"latexpaint", n:"✎ 乳胶漆", d:1.35, t:1, desc:"涂料饰面施工。含基层修补、刮腻子、打磨、刷底漆、刷面漆、清理保护。", audit:"按设计范围、现场实测展开面积、施工遍数、材料品牌型号及验收记录审核" },
+            { id:"gips", n:"□ 纸面石膏板", d:0.95, t:12, desc:"板面基层安装。含龙骨安装、板材裁切、钉固、接缝防裂、开孔配合、清理保护。", audit:"按吊顶/隔墙深化图、龙骨间距、板材厚度、现场实测面积及隐蔽验收记录审核" },
+            { id:"cement_board", n:"▤ 水泥纤维板", d:1.40, t:10, desc:"板面基层安装。含基层处理、板材裁切、钉固、接缝处理、防潮处理、清理保护。", audit:"按设计做法、材料厚度、隐蔽记录、现场实测面积和验收记录审核" },
+            { id:"osb", n:"▧ OSB/欧松板基层", d:0.65, t:12, desc:"木基层板安装。含板材裁切、基层固定、防火防潮处理、接缝处理、清理保护。", audit:"按基层深化图、板材规格厚度、防火等级资料、现场实测面积和隐蔽验收审核" },
+            { id:"minwool", n:"▦ 矿棉板吊顶", d:0.40, t:15, desc:"板块吊顶安装。含吊杆龙骨安装、板材排版、板块安装、边角收口、检修口配合。", audit:"按吊顶排版图、材料规格、龙骨系统、现场实测面积和验收记录审核" },
+            { id:"algrid", n:"▦ 铝格栅吊顶", d:2.70, t:1, desc:"格栅吊顶安装。含吊杆龙骨安装、格栅排版、安装固定、边框收口、灯具风口配合。", audit:"按格栅规格间距、展开面积或投影面积约定、材料单、现场实测和验收记录审核" },
+            { id:"alveneer", n:"◆ 铝单板", d:2.71, t:3, desc:"金属板饰面安装。含龙骨连接、板材安装、折边收口、开孔配合、清理保护。", audit:"按深化排版图、板厚、表面处理、加工单、现场展开面积和验收记录审核" },
+            { id:"stainless_panel", n:"◆ 不锈钢饰面板", d:7.93, t:1.2, desc:"金属饰面板安装。含基层配合、折弯刨槽、焊接粘接、收边收口、表面保护。", audit:"按材质牌号、板厚、表面工艺、加工单、现场展开面积和验收记录审核" },
+            { id:"glass", n:"◌ 钢化玻璃", d:2.50, t:10, desc:"玻璃隔断安装。含测量放线、玻璃安装、五金固定、打胶收口、清理保护。", audit:"按玻璃配置、厚度、加工单、安装位置、现场实测面积和验收记录审核" },
+            { id:"laminated_glass", n:"◌ 夹胶/夹丝玻璃", d:2.50, t:12, desc:"安全玻璃安装。含测量放线、玻璃安装、五金固定、密封收口、清理保护。", audit:"按玻璃构造、厚度、合格证、加工单、现场实测面积和验收记录审核" },
+            { id:"woodfl", n:"▧ 实木/复合地板", d:0.75, t:15, desc:"木地板面层铺装。含基层清理、防潮垫铺设、地板铺装、收边压条、清理保护。", audit:"按材料规格、铺装方向、现场实铺面积、损耗比例和验收记录审核" },
+            { id:"spc", n:"▣ SPC锁扣地板", d:2.00, t:5, desc:"锁扣地板面层铺装。含基层清理、防潮垫铺设、锁扣铺装、收边处理、清理保护。", audit:"按材料规格厚度、现场实铺面积、损耗比例、到货单和验收记录审核" },
+            { id:"carpet_tile", n:"▩ 方块地毯", d:0.55, t:6, desc:"地毯面层铺设。含基层清理、排版放线、裁切铺设、拼缝收边、清理保护。", audit:"按材料规格、铺装图、现场实铺面积、损耗比例和验收记录审核" },
+            { id:"wallp", n:"▤ 墙纸/墙布", d:0.80, t:2, desc:"裱糊饰面施工。含基层处理、裁纸裁布、拼花对缝、裱糊、阴阳角收口、清理保护。", audit:"按设计范围、材料幅宽、拼花损耗、现场实测展开面积和验收记录审核" },
+            { id:"woodven", n:"▧ 木饰面", d:0.70, t:18, desc:"木饰面安装。含基层配合、板材安装、封边收口、表面处理配合、清理保护。", audit:"按深化图、板材厚度、饰面工艺、现场展开面积、加工单和验收记录审核" },
+            { id:"acoustic_panel", n:"▨ 吸音板/软包基层", d:0.45, t:25, desc:"吸音饰面安装。含基层龙骨、吸音填充、面层安装、收边收口、防火处理配合。", audit:"按声学做法、材料防火等级、现场实测面积、隐蔽验收和检测资料审核" },
+            { id:"grg", n:"◇ GRG造型板", d:1.75, t:12, desc:"成品造型板安装。含预埋连接、板块拼装、接缝修补、打磨找平、清理保护。", audit:"按深化模型/图纸、展开面积、加工单、安装记录和验收记录审核" },
+            { id:"frp_panel", n:"◇ 玻璃钢装饰板", d:1.60, t:5, desc:"成品装饰板安装。含翻制成型、修边加固、拼接修补、表面处理配合、安装固定。", audit:"按深化图、样品确认、展开面积、加工单、现场安装记录和验收审核" }
+        ],
+        prop: [
+            { id:"velvet", n:"▨ 荷兰绒/科技布", d:0.50, t:2, desc:"软包饰面层。含裁剪、拼接、缝制、包覆、收口及成品保护。", audit:"按设计样板、面料小样、展开面积、裁剪损耗、加工记录和验收照片审核" },
+            { id:"canvas", n:"▤ 帆布/艺术布", d:0.45, t:1.5, desc:"画面绷布饰面层。含画面制作配合、裁剪、绷布、缝边、固定及成品保护。", audit:"按画面文件、面料规格、展开面积、喷绘单、现场安装记录审核" },
+            { id:"leather", n:"◩ 人造革/真皮", d:0.85, t:2, desc:"皮革软包饰面层。含裁剪、拼缝、包边、胶粘、车缝、收口及成品保护。", audit:"按材质样板、皮革等级、展开面积、损耗比例、加工单和验收记录审核" },
+            { id:"sponge35", n:"▥ 海绵(35D高弹)", d:0.035, t:50, desc:"软包造型填充层。含裁切、拼接、粘合、修型、包覆配合及成品保护。", audit:"按密度、厚度、体积/面积换算、材料单、加工记录和现场验收审核" },
+            { id:"sponge45", n:"▥ 海绵(45D加硬)", d:0.045, t:50, desc:"加硬软包造型填充层。含裁切、拼接、粘合、修型、结构配合及成品保护。", audit:"按密度、厚度、体积/面积换算、材料单、加工记录和现场验收审核" },
+            { id:"down", n:"○ 公仔棉/羽绒棉", d:0.02, t:80, desc:"柔性填充层。含填充、定型、封口、内衬配合及饱满度调整。", audit:"按填充重量、成品尺寸、样品确认、加工记录和现场验收审核" },
+            { id:"kt", n:"□ KT板", d:0.15, t:5, desc:"广告画面承载基层。含画面裱贴、裁切、拼接、背撑加固、安装固定、边角收口及成品保护。", audit:"按画面尺寸、板材厚度、加工单、现场实测面积和安装照片审核" },
+            { id:"pvc", n:"▣ PVC雪弗板", d:0.55, t:10, desc:"造型道具基层。含CNC切割、雕刻、拼接粘接、打磨修整、表面涂装基层处理及安装固定。", audit:"按深化图、板材厚度、加工单、展开面积、安装记录和验收审核" },
+            { id:"acrylic_sheet", n:"□ 亚克力板", d:1.18, t:5, desc:"透明展示道具构件。含切割、热弯、雕刻、抛光、粘接、安装固定及成品保护。", audit:"按板材厚度、透明/颜色规格、加工单、展开面积和验收记录审核" },
+            { id:"eva", n:"▥ EVA泡沫", d:0.15, t:20, desc:"轻质造型道具基层。含雕刻成型、热压塑形、拼接粘合、打磨修整及表面涂装基层处理。", audit:"按材料密度厚度、模型尺寸、加工记录、现场数量和验收照片审核" },
+            { id:"eps", n:"▥ EPS泡沫", d:0.025, t:100, desc:"大型轻质造型道具基层。含切割成型、雕刻修型、拼接加固、表面基层处理及成品保护。", audit:"按模型尺寸、体积/面积换算、加工单、运输安装记录和验收审核" },
+            { id:"epe", n:"▥ EPE珍珠棉", d:0.035, t:30, desc:"缓冲保护造型层。含裁切、粘接、分层成型、包覆配合及成品保护。", audit:"按材料厚度、成品尺寸、数量、加工单和验收记录审核" },
+            { id:"pu_foam", n:"▥ PU发泡/硬泡", d:0.08, t:50, desc:"硬质造型道具基层。含发泡成型、雕刻修型、拼接加固、表面基层处理及成品保护。", audit:"按造型尺寸、密度、加工记录、样品确认和现场验收审核" },
+            { id:"fiberglass_prop", n:"◇ 玻璃钢道具", d:1.60, t:4, desc:"成品道具外壳。含翻制成型、玻纤增强、拼接、修补、打磨、底漆处理及安装固定。", audit:"按深化图、样品确认、展开面积或数量、加工单、安装记录和验收审核" },
+            { id:"resin3d", n:"▦ 3D打印(光敏树脂)", d:1.15, t:10, desc:"精细道具打印件。含模型处理、打印成型、去除支撑、清洗固化、打磨修整及成品保护。", audit:"按模型文件、打印体积/重量、工时记录、后处理记录和成品验收审核" },
+            { id:"nylon3d", n:"▦ 3D打印(尼龙)", d:1.05, t:10, desc:"耐磨道具打印件。含模型处理、打印成型、清粉、后处理、表面处理配合及成品保护。", audit:"按模型文件、打印体积/重量、工艺记录、后处理记录和成品验收审核" },
+            { id:"metal_prop", n:"◆ 金属道具骨架/饰件", d:7.85, t:2, desc:"金属道具构件。含下料、焊接、打磨、防锈、表面处理配合及安装固定。", audit:"按深化图、材料规格、加工单、理论重量/实测数量、安装记录审核" },
+            { id:"wood_prop", n:"▧ 木作道具", d:0.60, t:18, desc:"木作展示道具基层。含板材裁切、拼装、打磨、封边、表面饰面配合及成品保护。", audit:"按深化图、板材规格、展开面积或数量、加工单和验收记录审核" },
+            { id:"artificial_plant", n:"✤ 仿真植物", d:0.10, t:30, desc:"仿真植物装饰层。含枝叶整理、阻燃处理配合、绑扎固定、造型调整及成品保护。", audit:"按样品确认、规格数量、供货清单、安装位置、现场照片和验收记录审核" },
+            { id:"led_strip", n:"✦ 灯带/发光道具", d:0.20, t:5, desc:"发光展示构件。含发光材料安装、扩散面层配合、线路固定、通电调试及成品保护。", audit:"按灯具规格、长度/面积、线路图、调试记录、隐蔽记录和验收审核" }
+        ]
+    };
+
+    const MATERIAL_ICON_META = {
+        "304": { icon:"polishedMetal", tone:"metal", hint:"镜面金属" },
+        "316": { icon:"marineMetal", tone:"metal", hint:"耐腐金属" },
+        weath: { icon:"steelBeam", tone:"metal", hint:"钢板金属" },
+        al: { icon:"lightMetal", tone:"metal", hint:"轻质金属" },
+        cu: { icon:"copper", tone:"metal", hint:"铜材金属" },
+        tin: { icon:"bronze", tone:"metal", hint:"青铜铸造" },
+        iron: { icon:"gear", tone:"metal", hint:"铁质铸造" },
+        frp: { icon:"shell", tone:"panel", hint:"玻璃钢" },
+        resin_trans: { icon:"drop", tone:"clear", hint:"透明材质" },
+        acrylic: { icon:"clearSheet", tone:"clear", hint:"透明板材" },
+        pc: { icon:"shield", tone:"clear", hint:"耐力板" },
+        glass: { icon:"glass", tone:"clear", hint:"玻璃材质" },
+        resin_uv: { icon:"printer", tone:"print", hint:"3D打印" },
+        wire_steel: { icon:"mesh", tone:"mesh", hint:"网材" },
+        wire_al: { icon:"mesh", tone:"mesh", hint:"网材" },
+        stone: { icon:"stone", tone:"stone", hint:"石材" },
+        conc: { icon:"masonry", tone:"stone", hint:"水泥直塑" },
+        custom_leaves: { icon:"leaf", tone:"plant", hint:"仿真植物" },
+        wood: { icon:"wood", tone:"wood", hint:"木作" },
+        paint: { icon:"paint", tone:"paint", hint:"彩绘" },
+        tile: { icon:"tileGrid", tone:"tile", hint:"块料面层" },
+        porcelain_slab: { icon:"largeSlab", tone:"tile", hint:"大板面层" },
+        marble: { icon:"stone", tone:"stone", hint:"天然石材" },
+        granite: { icon:"stone", tone:"stone", hint:"石材铺装" },
+        terrazzo: { icon:"terrazzo", tone:"stone", hint:"磨石面层" },
+        microcement: { icon:"trowel", tone:"paint", hint:"涂层面层" },
+        latexpaint: { icon:"paint", tone:"paint", hint:"涂料饰面" },
+        gips: { icon:"board", tone:"board", hint:"板面基层" },
+        cement_board: { icon:"cementBoard", tone:"board", hint:"水泥板" },
+        osb: { icon:"woodBoard", tone:"wood", hint:"木基层" },
+        minwool: { icon:"ceilingPanel", tone:"board", hint:"吊顶板块" },
+        algrid: { icon:"grid", tone:"metal", hint:"格栅吊顶" },
+        alveneer: { icon:"facadePanel", tone:"metal", hint:"金属板" },
+        stainless_panel: { icon:"polishedMetal", tone:"metal", hint:"金属饰面" },
+        laminated_glass: { icon:"glass", tone:"clear", hint:"安全玻璃" },
+        woodfl: { icon:"floor", tone:"wood", hint:"木地板" },
+        spc: { icon:"lockFloor", tone:"tile", hint:"锁扣地板" },
+        carpet_tile: { icon:"carpet", tone:"soft", hint:"地毯" },
+        wallp: { icon:"wallpaper", tone:"soft", hint:"裱糊饰面" },
+        woodven: { icon:"woodBoard", tone:"wood", hint:"木饰面" },
+        acoustic_panel: { icon:"acoustic", tone:"soft", hint:"吸音饰面" },
+        grg: { icon:"column", tone:"panel", hint:"造型板" },
+        frp_panel: { icon:"shell", tone:"panel", hint:"装饰板" },
+        velvet: { icon:"fabric", tone:"soft", hint:"软包面料" },
+        canvas: { icon:"canvas", tone:"soft", hint:"画面布料" },
+        leather: { icon:"leather", tone:"soft", hint:"皮革包覆" },
+        sponge35: { icon:"sponge", tone:"foam", hint:"高弹填充" },
+        sponge45: { icon:"spongeFirm", tone:"foam", hint:"加硬填充" },
+        down: { icon:"fillCloud", tone:"foam", hint:"柔性填充" },
+        kt: { icon:"signBoard", tone:"board", hint:"广告基层" },
+        pvc: { icon:"shield", tone:"board", hint:"造型板材" },
+        acrylic_sheet: { icon:"clearSheet", tone:"clear", hint:"透明板材" },
+        eva: { icon:"foamCut", tone:"foam", hint:"泡沫造型" },
+        eps: { icon:"foamBlock", tone:"foam", hint:"泡沫造型" },
+        epe: { icon:"bubble", tone:"foam", hint:"缓冲材料" },
+        pu_foam: { icon:"foamBlock", tone:"foam", hint:"硬泡造型" },
+        fiberglass_prop: { icon:"shell", tone:"panel", hint:"道具外壳" },
+        resin3d: { icon:"printer", tone:"print", hint:"3D打印" },
+        nylon3d: { icon:"gearPrint", tone:"print", hint:"耐磨打印" },
+        metal_prop: { icon:"bolt", tone:"metal", hint:"金属构件" },
+        wood_prop: { icon:"wood", tone:"wood", hint:"木作道具" },
+        artificial_plant: { icon:"leaf", tone:"plant", hint:"仿真植物" },
+        led_strip: { icon:"light", tone:"light", hint:"发光构件" }
+    };
+
+    const MATERIAL_TONES = {
+        metal: ["#dbeafe", "#93c5fd"],
+        clear: ["#e0f2fe", "#67e8f9"],
+        stone: ["#f1f5f9", "#cbd5e1"],
+        tile: ["#fef3c7", "#fbbf24"],
+        wood: ["#ffedd5", "#fb923c"],
+        soft: ["#fce7f3", "#f9a8d4"],
+        foam: ["#dcfce7", "#86efac"],
+        board: ["#e0e7ff", "#a5b4fc"],
+        panel: ["#ecfeff", "#67e8f9"],
+        print: ["#ede9fe", "#c4b5fd"],
+        paint: ["#fee2e2", "#fca5a5"],
+        mesh: ["#e2e8f0", "#94a3b8"],
+        plant: ["#dcfce7", "#4ade80"],
+        light: ["#fef9c3", "#fde047"]
+    };
+
+    const MATERIAL_ICON_DRAWINGS = {
+        polishedMetal: `<svg viewBox="0 0 32 32"><rect x="6" y="7" width="20" height="18" rx="3"/><path d="M10 21 22 9M8 16l8-8M16 24l8-8"/></svg>`,
+        marineMetal: `<svg viewBox="0 0 32 32"><rect x="7" y="6" width="18" height="14" rx="3"/><path d="M8 24c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M11 11h10M11 15h7"/></svg>`,
+        steelBeam: `<svg viewBox="0 0 32 32"><path d="M9 7h14M9 25h14M14 7v18M18 7v18"/><path d="M10 11h12M10 21h12"/></svg>`,
+        lightMetal: `<svg viewBox="0 0 32 32"><path d="M5 18 27 8 18 27l-3-8-10-1Z"/><path d="m15 19 5-5"/></svg>`,
+        copper: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="9"/><path d="M16 7v18M8 16h16"/></svg>`,
+        bronze: `<svg viewBox="0 0 32 32"><path d="M12 9h8l2 6-3 10h-6l-3-10 2-6Z"/><path d="M11 9h10M13 15h6"/></svg>`,
+        gear: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="5"/><path d="M16 5v4M16 23v4M5 16h4M23 16h4M8.2 8.2l2.8 2.8M21 21l2.8 2.8M23.8 8.2 21 11M11 21l-2.8 2.8"/><circle cx="16" cy="16" r="10"/></svg>`,
+        shell: `<svg viewBox="0 0 32 32"><path d="M5 19c5 6 17 6 22 0-4-8-18-8-22 0Z"/><path d="M9 18c3-3 11-3 14 0M12 22h8"/></svg>`,
+        drop: `<svg viewBox="0 0 32 32"><path d="M16 5c5 6 8 10 8 15a8 8 0 0 1-16 0c0-5 3-9 8-15Z"/><path d="M12 21c1 2 3 3 5 3"/></svg>`,
+        clearSheet: `<svg viewBox="0 0 32 32"><path d="M9 6h14v20H9z"/><path d="m10 23 12-14M10 16l7-8"/></svg>`,
+        shield: `<svg viewBox="0 0 32 32"><path d="M16 5 25 9v7c0 6-4 10-9 12-5-2-9-6-9-12V9l9-4Z"/><path d="M12 16h8"/></svg>`,
+        glass: `<svg viewBox="0 0 32 32"><path d="M16 5 27 16 16 27 5 16 16 5Z"/><path d="M10 16h12M16 10v12"/></svg>`,
+        printer: `<svg viewBox="0 0 32 32"><path d="M10 5h12v7H10zM8 15h16a3 3 0 0 1 3 3v5H5v-5a3 3 0 0 1 3-3Z"/><path d="M11 22h10v5H11zM22 18h1"/></svg>`,
+        mesh: `<svg viewBox="0 0 32 32"><path d="M7 7h18v18H7zM7 13h18M7 19h18M13 7v18M19 7v18"/><path d="m7 7 18 18M25 7 7 25"/></svg>`,
+        stone: `<svg viewBox="0 0 32 32"><path d="M7 21 12 9h10l4 12-5 5h-9l-5-5Z"/><path d="M12 9l4 17M22 9l-4 8M9 21h17"/></svg>`,
+        masonry: `<svg viewBox="0 0 32 32"><path d="M6 8h20v16H6zM6 14h20M6 20h20M16 8v6M11 14v6M21 14v6M16 20v4"/></svg>`,
+        leaf: `<svg viewBox="0 0 32 32"><path d="M6 24c12 0 18-8 20-18-10 1-18 6-20 18Z"/><path d="M8 24c5-6 10-9 16-14"/></svg>`,
+        wood: `<svg viewBox="0 0 32 32"><rect x="7" y="8" width="18" height="16" rx="3"/><path d="M11 12c4 2 6-2 10 0M10 18c5-3 7 3 12 0M13 23c2-2 4-2 6 0"/></svg>`,
+        paint: `<svg viewBox="0 0 32 32"><path d="M8 7h12l4 4v7a7 7 0 0 1-7 7H8V7Z"/><circle cx="13" cy="13" r="1.5"/><circle cx="18" cy="15" r="1.5"/><circle cx="14" cy="20" r="1.5"/><path d="M21 23c3 0 4-2 3-4"/></svg>`,
+        tileGrid: `<svg viewBox="0 0 32 32"><path d="M6 6h20v20H6zM16 6v20M6 16h20"/></svg>`,
+        largeSlab: `<svg viewBox="0 0 32 32"><path d="M7 6h18v20H7z"/><path d="m10 22 12-12M10 14l5-5"/></svg>`,
+        terrazzo: `<svg viewBox="0 0 32 32"><rect x="6" y="6" width="20" height="20" rx="3"/><path d="M11 12h.1M19 10h.1M22 18h.1M13 22h.1M16 17h.1"/><path d="M9 17 14 9M18 24l6-8"/></svg>`,
+        trowel: `<svg viewBox="0 0 32 32"><path d="M7 21 22 6l4 4-15 15H7v-4Z"/><path d="M18 10l4 4M7 25h9"/></svg>`,
+        board: `<svg viewBox="0 0 32 32"><path d="M8 6h16v20H8z"/><path d="M12 10h8M12 16h8M12 22h8"/></svg>`,
+        cementBoard: `<svg viewBox="0 0 32 32"><path d="M8 6h16v20H8zM8 14h16M8 21h16"/><path d="M12 10h.1M18 18h.1M21 24h.1"/></svg>`,
+        woodBoard: `<svg viewBox="0 0 32 32"><path d="M7 8h18v16H7zM13 8v16M19 8v16"/><path d="M9 13c2-2 3 2 5 0M20 19c2-2 3 2 5 0"/></svg>`,
+        ceilingPanel: `<svg viewBox="0 0 32 32"><path d="M6 8h20v14H6zM6 15h20M13 8v14M20 8v14"/><path d="M11 26h10"/></svg>`,
+        grid: `<svg viewBox="0 0 32 32"><path d="M6 9h20M6 16h20M6 23h20M9 6v20M16 6v20M23 6v20"/></svg>`,
+        facadePanel: `<svg viewBox="0 0 32 32"><path d="M8 6h16v20H8zM12 10h4v4h-4zM18 10h3v4h-3zM12 17h4v5h-4zM18 17h3v5h-3z"/></svg>`,
+        floor: `<svg viewBox="0 0 32 32"><path d="M6 22 16 8l10 14H6Z"/><path d="M10 22 18 10M16 22l5-7"/></svg>`,
+        lockFloor: `<svg viewBox="0 0 32 32"><path d="M7 9h18v14H7zM13 9v14M19 9v14"/><path d="M10 23v3h6v-3M16 9V6h6v3"/></svg>`,
+        carpet: `<svg viewBox="0 0 32 32"><path d="M7 8h18v16H7z"/><path d="M10 12h12M10 16h12M10 20h12"/><path d="M7 25c2 2 4 2 6 0 2 2 4 2 6 0 2 2 4 2 6 0"/></svg>`,
+        wallpaper: `<svg viewBox="0 0 32 32"><path d="M10 6h12v20H10z"/><path d="M14 10h4M14 15h4M14 20h4"/><path d="M22 10c3 0 3 4 0 4"/></svg>`,
+        acoustic: `<svg viewBox="0 0 32 32"><path d="M8 12h6l6-5v18l-6-5H8v-8Z"/><path d="M23 12c2 2 2 6 0 8M26 9c4 4 4 10 0 14"/></svg>`,
+        column: `<svg viewBox="0 0 32 32"><path d="M9 8h14M8 24h16M11 11h10M12 11v13M20 11v13"/><path d="M7 8 16 4l9 4"/></svg>`,
+        fabric: `<svg viewBox="0 0 32 32"><path d="M8 7h16v18H8z"/><path d="M11 7c3 4 7 4 10 0M11 25c3-4 7-4 10 0"/><path d="M12 12h8M12 17h8"/></svg>`,
+        canvas: `<svg viewBox="0 0 32 32"><path d="M7 8h18v13H7zM11 25h10M16 21v4"/><path d="m10 18 4-5 4 4 3-3 3 4"/></svg>`,
+        leather: `<svg viewBox="0 0 32 32"><path d="M10 7c4 3 8 3 12 0l3 6-4 2v10H11V15l-4-2 3-6Z"/><path d="M13 12h6M13 17h6"/></svg>`,
+        sponge: `<svg viewBox="0 0 32 32"><rect x="7" y="8" width="18" height="16" rx="4"/><circle cx="12" cy="13" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="16" cy="18" r="1"/><circle cx="22" cy="20" r="1"/><circle cx="11" cy="21" r="1"/></svg>`,
+        spongeFirm: `<svg viewBox="0 0 32 32"><rect x="6" y="8" width="20" height="16" rx="3"/><path d="M10 12h12M10 16h12M10 20h12"/></svg>`,
+        fillCloud: `<svg viewBox="0 0 32 32"><path d="M9 21h14a5 5 0 0 0 0-10 7 7 0 0 0-13-1 5.5 5.5 0 0 0-1 11Z"/></svg>`,
+        signBoard: `<svg viewBox="0 0 32 32"><path d="M7 7h18v12H7zM16 19v7"/><path d="M11 12h10M11 16h6"/></svg>`,
+        foamCut: `<svg viewBox="0 0 32 32"><path d="M8 22 20 8l5 5-12 11H8v-2Z"/><path d="M17 11l4 4M7 9l6 6"/></svg>`,
+        foamBlock: `<svg viewBox="0 0 32 32"><path d="M8 11 16 6l8 5v10l-8 5-8-5V11Z"/><path d="M8 11l8 5 8-5M16 16v10"/></svg>`,
+        bubble: `<svg viewBox="0 0 32 32"><circle cx="12" cy="19" r="5"/><circle cx="21" cy="13" r="4"/><circle cx="22" cy="23" r="2"/><circle cx="10" cy="9" r="2"/></svg>`,
+        gearPrint: `<svg viewBox="0 0 32 32"><path d="M9 6h14v7H9zM7 16h18v8H7z"/><circle cx="16" cy="20" r="3"/><path d="M16 15v2M16 23v2M11 20h2M19 20h2"/></svg>`,
+        bolt: `<svg viewBox="0 0 32 32"><path d="M12 6h8l3 5-3 5h-8l-3-5 3-5ZM12 16h8v10h-8z"/><path d="M14 21h4"/></svg>`,
+        light: `<svg viewBox="0 0 32 32"><path d="M11 15a5 5 0 1 1 10 0c0 3-2 4-3 6h-4c-1-2-3-3-3-6Z"/><path d="M14 25h4M13 21h6M16 4v3M6 15h3M23 15h3M9 8l2 2M23 8l-2 2"/></svg>`
+    };
+
+    const MATERIAL_BADGE_META = {
+        "304": { badge:"metal", tone:"silver", mark:"304", hint:"镜面金属" },
+        "316": { badge:"metal", tone:"marine", mark:"316", hint:"耐腐金属" },
+        weath: { badge:"metal", tone:"corten", mark:"耐", hint:"耐候钢板" },
+        al: { badge:"metal", tone:"aluminum", mark:"Al", hint:"轻质金属" },
+        cu: { badge:"metal", tone:"copper", mark:"Cu", hint:"铜材金属" },
+        tin: { badge:"metal", tone:"bronze", mark:"青", hint:"青铜铸造" },
+        iron: { badge:"metal", tone:"iron", mark:"铁", hint:"铁质铸造" },
+        frp: { badge:"fiberglass", tone:"fiberglass", mark:"FRP", hint:"玻璃钢" },
+        resin_trans: { badge:"glass", tone:"clear", mark:"透", hint:"透明树脂" },
+        acrylic: { badge:"glass", tone:"clear", mark:"PMMA", hint:"亚克力" },
+        pc: { badge:"glass", tone:"clear", mark:"PC", hint:"耐力板" },
+        glass: { badge:"glass", tone:"clear", mark:"玻", hint:"玻璃材质" },
+        resin_uv: { badge:"print", tone:"print", mark:"UV", hint:"光敏打印" },
+        wire_steel: { badge:"mesh", tone:"mesh", mark:"钢网", hint:"钢丝网" },
+        wire_al: { badge:"mesh", tone:"mesh", mark:"铝网", hint:"铝丝网" },
+        stone: { badge:"stone", tone:"stone", mark:"石", hint:"石材" },
+        conc: { badge:"cement", tone:"cement", mark:"泥", hint:"水泥直塑" },
+        custom_leaves: { badge:"plant", tone:"plant", mark:"叶", hint:"仿真植物" },
+        wood: { badge:"wood", tone:"wood", mark:"木", hint:"木作" },
+        paint: { badge:"paint", tone:"paint", mark:"彩", hint:"彩绘" },
+        tile: { badge:"tile", tone:"tile", mark:"瓷", hint:"块料面层" },
+        porcelain_slab: { badge:"tile", tone:"tile", mark:"大板", hint:"大板面层" },
+        marble: { badge:"stone", tone:"stone", mark:"石", hint:"天然石材" },
+        granite: { badge:"stone", tone:"stone", mark:"岩", hint:"花岗岩" },
+        terrazzo: { badge:"stone", tone:"stone", mark:"磨", hint:"磨石面层" },
+        microcement: { badge:"paint", tone:"cement", mark:"微", hint:"微水泥" },
+        latexpaint: { badge:"paint", tone:"paint", mark:"漆", hint:"涂料饰面" },
+        gips: { badge:"board", tone:"board", mark:"膏", hint:"石膏板" },
+        cement_board: { badge:"cement", tone:"board", mark:"水泥", hint:"水泥板" },
+        osb: { badge:"wood", tone:"wood", mark:"OSB", hint:"木基层" },
+        minwool: { badge:"board", tone:"board", mark:"矿", hint:"吊顶板块" },
+        algrid: { badge:"mesh", tone:"aluminum", mark:"格", hint:"铝格栅" },
+        alveneer: { badge:"metal", tone:"aluminum", mark:"铝", hint:"铝单板" },
+        stainless_panel: { badge:"metal", tone:"silver", mark:"钢", hint:"不锈钢饰面" },
+        laminated_glass: { badge:"glass", tone:"clear", mark:"夹", hint:"安全玻璃" },
+        woodfl: { badge:"wood", tone:"wood", mark:"地板", hint:"木地板" },
+        spc: { badge:"tile", tone:"tile", mark:"SPC", hint:"锁扣地板" },
+        carpet_tile: { badge:"fabric", tone:"fabric", mark:"毯", hint:"方块地毯" },
+        wallp: { badge:"fabric", tone:"fabric", mark:"墙", hint:"墙纸墙布" },
+        woodven: { badge:"wood", tone:"wood", mark:"饰", hint:"木饰面" },
+        acoustic_panel: { badge:"acoustic", tone:"fabric", mark:"吸", hint:"吸音饰面" },
+        grg: { badge:"fiberglass", tone:"panel", mark:"GRG", hint:"造型板" },
+        frp_panel: { badge:"fiberglass", tone:"fiberglass", mark:"FRP", hint:"装饰板" },
+        velvet: { badge:"fabric", tone:"fabric", mark:"绒", hint:"软包面料" },
+        canvas: { badge:"fabric", tone:"fabric", mark:"布", hint:"画面布料" },
+        leather: { badge:"leather", tone:"leather", mark:"皮", hint:"皮革包覆" },
+        sponge35: { badge:"foam", tone:"foam", mark:"35D", hint:"高弹填充" },
+        sponge45: { badge:"foam", tone:"foam", mark:"45D", hint:"加硬填充" },
+        down: { badge:"fill", tone:"foam", mark:"棉", hint:"柔性填充" },
+        kt: { badge:"board", tone:"board", mark:"KT", hint:"广告基层" },
+        pvc: { badge:"board", tone:"board", mark:"PVC", hint:"造型板材" },
+        acrylic_sheet: { badge:"glass", tone:"clear", mark:"亚", hint:"透明板材" },
+        eva: { badge:"foam", tone:"foam", mark:"EVA", hint:"泡沫造型" },
+        eps: { badge:"foam", tone:"foam", mark:"EPS", hint:"泡沫造型" },
+        epe: { badge:"bubble", tone:"foam", mark:"EPE", hint:"缓冲材料" },
+        pu_foam: { badge:"foam", tone:"foam", mark:"PU", hint:"硬泡造型" },
+        fiberglass_prop: { badge:"fiberglass", tone:"fiberglass", mark:"FRP", hint:"道具外壳" },
+        resin3d: { badge:"print", tone:"print", mark:"3D", hint:"光敏打印" },
+        nylon3d: { badge:"print", tone:"print", mark:"尼", hint:"耐磨打印" },
+        metal_prop: { badge:"metal", tone:"iron", mark:"金", hint:"金属构件" },
+        wood_prop: { badge:"wood", tone:"wood", mark:"木", hint:"木作道具" },
+        artificial_plant: { badge:"plant", tone:"plant", mark:"叶", hint:"仿真植物" },
+        led_strip: { badge:"light", tone:"light", mark:"灯", hint:"发光构件" }
+    };
+
+    const MATERIAL_BADGE_TONES = {
+        silver: ["#f8fafc", "#94a3b8", "#334155"],
+        marine: ["#dbeafe", "#38bdf8", "#075985"],
+        corten: ["#fed7aa", "#c2410c", "#7c2d12"],
+        aluminum: ["#f8fafc", "#cbd5e1", "#475569"],
+        copper: ["#ffedd5", "#f97316", "#7c2d12"],
+        bronze: ["#fde68a", "#b45309", "#78350f"],
+        iron: ["#d1d5db", "#4b5563", "#111827"],
+        fiberglass: ["#cffafe", "#0891b2", "#164e63"],
+        clear: ["#e0f2fe", "#7dd3fc", "#0369a1"],
+        print: ["#ede9fe", "#a78bfa", "#5b21b6"],
+        mesh: ["#e2e8f0", "#94a3b8", "#334155"],
+        stone: ["#f1f5f9", "#94a3b8", "#334155"],
+        cement: ["#e5e7eb", "#9ca3af", "#374151"],
+        plant: ["#dcfce7", "#22c55e", "#14532d"],
+        wood: ["#fed7aa", "#b45309", "#78350f"],
+        paint: ["#fee2e2", "#fb7185", "#9f1239"],
+        tile: ["#fef3c7", "#f59e0b", "#92400e"],
+        board: ["#e0e7ff", "#818cf8", "#3730a3"],
+        fabric: ["#fce7f3", "#f472b6", "#831843"],
+        leather: ["#fed7aa", "#92400e", "#451a03"],
+        foam: ["#dcfce7", "#86efac", "#166534"],
+        panel: ["#ecfeff", "#67e8f9", "#164e63"],
+        light: ["#fef9c3", "#fde047", "#854d0e"]
+    };
+
+    const MATERIAL_OBJECT_META = {
+        "304": { badge:"stainlessSheet", tone:"silver", mark:"304", hint:"镜面不锈钢板" },
+        "316": { badge:"marineSheet", tone:"marine", mark:"316", hint:"耐腐不锈钢板" },
+        weath: { badge:"cortenPlate", tone:"corten", mark:"耐", hint:"耐候钢板" },
+        al: { badge:"aluminumPanel", tone:"aluminum", mark:"Al", hint:"铝板/铝件" },
+        cu: { badge:"copperPipe", tone:"copper", mark:"Cu", hint:"铜材构件" },
+        tin: { badge:"bronzeCast", tone:"bronze", mark:"青", hint:"青铜铸造件" },
+        iron: { badge:"ironCasting", tone:"iron", mark:"铁", hint:"铁质铸造件" },
+        frp: { badge:"fiberglassShell", tone:"fiberglass", mark:"FRP", hint:"玻璃钢外壳" },
+        resin_trans: { badge:"clearResin", tone:"clear", mark:"透", hint:"透明树脂块" },
+        acrylic: { badge:"acrylicSheetIcon", tone:"clear", mark:"PMMA", hint:"亚克力透明板" },
+        pc: { badge:"pcPanel", tone:"clear", mark:"PC", hint:"耐力板" },
+        glass: { badge:"glassPane", tone:"clear", mark:"玻", hint:"玻璃片材" },
+        resin_uv: { badge:"resinPrinter", tone:"print", mark:"UV", hint:"光敏树脂打印" },
+        wire_steel: { badge:"steelMesh", tone:"mesh", mark:"钢网", hint:"钢丝网" },
+        wire_al: { badge:"aluminumMesh", tone:"aluminum", mark:"铝网", hint:"铝丝网" },
+        stone: { badge:"stoneBlock", tone:"stone", mark:"石", hint:"石材块料" },
+        conc: { badge:"concreteWall", tone:"cement", mark:"泥", hint:"水泥直塑" },
+        custom_leaves: { badge:"plantStem", tone:"plant", mark:"叶", hint:"仿真枝叶" },
+        wood: { badge:"woodLog", tone:"wood", mark:"木", hint:"木材/木雕" },
+        paint: { badge:"paintPalette", tone:"paint", mark:"彩", hint:"彩绘涂装" },
+        tile: { badge:"tileGrid", tone:"tile", mark:"瓷", hint:"瓷砖块料" },
+        porcelain_slab: { badge:"largeSlab", tone:"tile", mark:"大板", hint:"岩板/大板" },
+        marble: { badge:"marbleSlab", tone:"stone", mark:"石", hint:"大理石板" },
+        granite: { badge:"graniteBlock", tone:"stone", mark:"岩", hint:"花岗岩块" },
+        terrazzo: { badge:"terrazzoChip", tone:"stone", mark:"磨", hint:"水磨石面层" },
+        microcement: { badge:"trowelCoat", tone:"cement", mark:"微", hint:"微水泥涂层" },
+        latexpaint: { badge:"paintRoller", tone:"paint", mark:"漆", hint:"乳胶漆饰面" },
+        gips: { badge:"gypsumBoard", tone:"board", mark:"膏", hint:"石膏板" },
+        cement_board: { badge:"cementBoardStack", tone:"board", mark:"水泥", hint:"水泥板" },
+        osb: { badge:"osbBoard", tone:"wood", mark:"OSB", hint:"OSB木基层" },
+        minwool: { badge:"ceilingPanel", tone:"board", mark:"矿", hint:"矿棉吊顶板" },
+        algrid: { badge:"gridCeiling", tone:"aluminum", mark:"格", hint:"铝格栅" },
+        alveneer: { badge:"aluminumFacade", tone:"aluminum", mark:"铝", hint:"铝单板" },
+        stainless_panel: { badge:"stainlessPanel", tone:"silver", mark:"钢", hint:"不锈钢饰面板" },
+        laminated_glass: { badge:"laminatedGlass", tone:"clear", mark:"夹", hint:"夹胶安全玻璃" },
+        woodfl: { badge:"floorPlank", tone:"wood", mark:"地板", hint:"木地板" },
+        spc: { badge:"lockFloor", tone:"tile", mark:"SPC", hint:"锁扣地板" },
+        carpet_tile: { badge:"carpetTile", tone:"fabric", mark:"毯", hint:"方块地毯" },
+        wallp: { badge:"wallpaperRoll", tone:"fabric", mark:"墙", hint:"墙纸墙布卷材" },
+        woodven: { badge:"woodVeneer", tone:"wood", mark:"饰", hint:"木饰面板" },
+        acoustic_panel: { badge:"acousticPanel", tone:"fabric", mark:"吸", hint:"吸音板" },
+        grg: { badge:"grgColumn", tone:"panel", mark:"GRG", hint:"GRG造型件" },
+        frp_panel: { badge:"frpPanel", tone:"fiberglass", mark:"FRP", hint:"FRP装饰板" },
+        velvet: { badge:"fabricRoll", tone:"fabric", mark:"绒", hint:"绒布软包面料" },
+        canvas: { badge:"canvasFrame", tone:"fabric", mark:"布", hint:"喷绘画布" },
+        leather: { badge:"leatherHide", tone:"leather", mark:"皮", hint:"皮革包覆" },
+        sponge35: { badge:"spongeBlock", tone:"foam", mark:"35D", hint:"高弹海绵" },
+        sponge45: { badge:"firmSponge", tone:"foam", mark:"45D", hint:"加硬海绵" },
+        down: { badge:"downPillow", tone:"foam", mark:"棉", hint:"羽绒/丝棉填充" },
+        kt: { badge:"signFoamBoard", tone:"board", mark:"KT", hint:"KT泡沫板" },
+        pvc: { badge:"pvcStack", tone:"board", mark:"PVC", hint:"PVC雪弗板" },
+        acrylic_sheet: { badge:"acrylicSheetIcon", tone:"clear", mark:"亚", hint:"亚克力板" },
+        eva: { badge:"evaCut", tone:"foam", mark:"EVA", hint:"EVA泡棉" },
+        eps: { badge:"epsBlock", tone:"foam", mark:"EPS", hint:"EPS泡沫块" },
+        epe: { badge:"pearlFoam", tone:"foam", mark:"EPE", hint:"EPE珍珠棉" },
+        pu_foam: { badge:"puFoam", tone:"foam", mark:"PU", hint:"PU硬泡块" },
+        fiberglass_prop: { badge:"propShell", tone:"fiberglass", mark:"FRP", hint:"玻璃钢道具壳" },
+        resin3d: { badge:"printerPart", tone:"print", mark:"3D", hint:"光敏树脂打印件" },
+        nylon3d: { badge:"nylonPrint", tone:"print", mark:"尼", hint:"尼龙打印件" },
+        metal_prop: { badge:"metalFrame", tone:"iron", mark:"金", hint:"金属骨架/饰件" },
+        wood_prop: { badge:"woodCrate", tone:"wood", mark:"木", hint:"木作道具" },
+        artificial_plant: { badge:"plantStem", tone:"plant", mark:"叶", hint:"仿真植物" },
+        led_strip: { badge:"ledStrip", tone:"light", mark:"灯", hint:"灯带/发光件" }
+    };
+
+    const FRAMES = {
+        sq: [
+            {n:"20x20x1.5",w:0.85},{n:"20x20x2.0",w:1.13},{n:"25x25x2.0",w:1.45},
+            {n:"30x30x2.0",w:1.76},{n:"30x30x3.0",w:2.55},
+            {n:"40x40x2.0",w:2.39},{n:"40x40x3.0",w:3.49},{n:"40x40x4.0",w:4.52},
+            {n:"50x50x3.0",w:4.43},{n:"50x50x4.0",w:5.78},{n:"50x50x5.0",w:7.07},
+            {n:"60x60x3.0",w:5.37},{n:"60x60x4.0",w:7.03},{n:"60x60x5.0",w:8.64},
+            {n:"80x80x4.0",w:9.55},{n:"80x80x5.0",w:11.80},{n:"80x80x6.0",w:13.90},
+            {n:"100x100x4.0",w:12.10},{n:"100x100x5.0",w:15.10},{n:"100x100x8.0",w:23.00},
+            {n:"120x120x5.0",w:18.40},{n:"150x150x6.0",w:27.40},{n:"200x200x8.0",w:48.60},
+            {n:"250x250x8.0",w:61.10},{n:"300x300x10.0",w:92.60}
+        ],
+        rect: [
+            {n:"40x20x2.0",w:1.76},{n:"50x25x2.5",w:2.73},
+            {n:"60x40x2.5",w:3.71},{n:"60x40x3.0",w:4.43},
+            {n:"80x40x3.0",w:5.37},{n:"80x40x4.0",w:7.03},
+            {n:"100x50x4.0",w:8.91},{n:"100x50x5.0",w:10.99},
+            {n:"120x60x5.0",w:13.40},{n:"150x100x6.0",w:22.60},
+            {n:"200x100x6.0",w:27.40},{n:"200x150x8.0",w:42.30},
+            {n:"300x200x10.0",w:76.90}
+        ],
+        rd: [
+            {n:"DN15(Φ21.3x2.8)",w:1.28}, {n:"DN20(Φ26.9x2.8)",w:1.66},
+            {n:"DN25(Φ33.7x3.2)",w:2.41}, {n:"DN32(Φ42.4x3.5)",w:3.36},
+            {n:"DN40(Φ48.3x3.5)",w:3.87}, {n:"DN50(Φ60.3x3.8)",w:5.29},
+            {n:"DN65(Φ76.1x4.0)",w:7.11}, {n:"DN80(Φ88.9x4.0)",w:8.38},
+            {n:"DN100(Φ114.3x4.0)",w:10.88}, {n:"DN125(Φ140x4.5)",w:15.04},
+            {n:"DN150(Φ165x4.5)",w:17.81}, {n:"DN200(Φ219x6.0)",w:31.52},
+            {n:"DN250(Φ273x6.0)",w:39.50}, {n:"DN300(Φ325x8.0)",w:62.54}
+        ],
+        ang: [
+            {n:"30x30x3",w:1.373},{n:"40x40x4",w:2.422},{n:"50x50x5",w:3.770},
+            {n:"63x63x6",w:5.721},{n:"75x75x6",w:6.905},{n:"75x75x8",w:9.030},
+            {n:"90x90x8",w:10.946},{n:"100x100x10",w:15.120}
+        ],
+        chn: [
+            {n:"5# (50x37x4.5)",w:5.44}, {n:"6.3# (63x40x4.8)",w:6.63},
+            {n:"8# (80x43x5.0)",w:8.05}, {n:"10# (100x48x5.3)",w:10.00},
+            {n:"12# (120x53x5.5)",w:12.06}, {n:"14# (140x58x6.0)",w:14.53},
+            {n:"16# (160x63x6.5)",w:17.23}, {n:"18# (180x68x7.0)",w:20.17},
+            {n:"20# (200x73x7.0)",w:22.63}
+        ]
+    };
+
+    let listData = [];
+    let editingIndex = -1; 
+    let currentProjectTitle = "****项目"; 
+    const STORAGE_KEY = 'sculpture_calc_projects';
+    const TEMPLATE_STORAGE_KEY = 'sculpture_calc_templates';
+    let draggedItemIndex = -1; 
+    let isRestoringState = false;
+    let expandedRows = new Set();
+    let undoStack = [];
+    let redoStack = [];
+    const HISTORY_LIMIT = 50;
+
+    // === 初始化 ===
+    window.onload = function() {
+        updateCat();
+        renderFrameProfiles();
+        initStorage();
+        updateUndoRedoButtons();
+        document.addEventListener('keydown', handleUndoRedoShortcut);
+        document.addEventListener('click', closeMaterialPicker);
+    };
+
+    function getProjects() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch (err) {
+            alert("本地存档读取失败，已临时跳过。建议导出备份后清理浏览器缓存。");
+            return {};
+        }
+    }
+
+    function setProjects(projects) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+    }
+
+    function getJsonStore(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            const parsed = JSON.parse(raw);
+            return parsed ?? fallback;
+        } catch (err) {
+            return fallback;
+        }
+    }
+
+    function setJsonStore(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function getTemplates() {
+        const templates = getJsonStore(TEMPLATE_STORAGE_KEY, []);
+        return Array.isArray(templates) ? templates : [];
+    }
+
+    function setTemplates(templates) {
+        setJsonStore(TEMPLATE_STORAGE_KEY, templates);
+    }
+
+    function getUniqueProjectTitle(baseTitle) {
+        const projects = getProjects();
+        const base = (baseTitle || "****项目").trim() || "****项目";
+        if (!projects[base]) return base;
+        let i = 1;
+        while (projects[`${base}-${i}`]) i++;
+        return `${base}-${i}`;
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "").replace(/[&<>"']/g, ch => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[ch]));
+    }
+
+    function safeFileName(value) {
+        return String(value || "雕塑计算项目").replace(/[\\/:*?"<>|]/g, "_").slice(0, 80);
+    }
+
+    function ensureXlsxReady() {
+        if (window.XLSX) return true;
+        alert("Excel导出库尚未加载完成。请检查网络后刷新页面，或将 xlsx-js-style 改为本地引用。");
+        return false;
+    }
+
+    function cleanDimensionValue(value) {
+        const text = String(value ?? "").trim();
+        if (!text) return "";
+        const num = Number(text);
+        return Number.isFinite(num) && num > 0 ? text : "";
+    }
+
+    function getArtDimensionsFromInputs() {
+        const getVal = id => cleanDimensionValue(document.getElementById(id)?.value);
+        return { l: getVal('art-dim-l'), w: getVal('art-dim-w'), h: getVal('art-dim-h') };
+    }
+
+    function hasAnyDimension(dims) {
+        return !!(dims && (dims.l || dims.w || dims.h));
+    }
+
+    function hasCompleteDimensions(dims) {
+        return !!(dims && dims.l && dims.w && dims.h);
+    }
+
+    function formatDimensionCellText(dims, fallbackText = "长：*m\n宽：*m\n高：*m\n(请修改)") {
+        if (!hasAnyDimension(dims)) return fallbackText;
+        const suffix = hasCompleteDimensions(dims) ? "" : "\n(请补全)";
+        return `长：${dims.l || "*"}m\n宽：${dims.w || "*"}m\n高：${dims.h || "*"}m${suffix}`;
+    }
+
+    function buildDimensionCell(item, normalStyle, warningStyle) {
+        if (item?.name === "内部骨架" || String(item?.name || "").includes("内部骨架")) {
+            return { v: `长度 ${item.qtyVal || 0}m`, s: normalStyle };
+        }
+        const dims = item?.dims || item?.inputs?.dims || null;
+        if (hasCompleteDimensions(dims)) {
+            return { v: formatDimensionCellText(dims), s: normalStyle };
+        }
+        return { v: formatDimensionCellText(dims), s: warningStyle };
+    }
+
+    function getCurrentInputState() {
+        const getVal = id => document.getElementById(id)?.value ?? "";
+        const getChecked = id => !!document.getElementById(id)?.checked;
+        return {
+            cat: getVal('global-cat'),
+            part: getVal('current-part'),
+            area: getVal('global-area'),
+            dimL: getVal('art-dim-l'),
+            dimW: getVal('art-dim-w'),
+            dimH: getVal('art-dim-h'),
+            form: getVal('global-form'),
+            matId: getVal('step3-mat'),
+            proc: getVal('step3-process'),
+            thk: getVal('step3-thk'),
+            meshW: getVal('step3-mesh-wire'),
+            meshH: getVal('step3-mesh-hole'),
+            coop: getVal('step3-coop'),
+            base: getVal('step3-base'),
+            finish: getVal('step4-finish'),
+            finishText: getVal('step4-finish-text'),
+            finishRate: getVal('step4-finish-rate'),
+            paintLvl: getVal('step5-level'),
+            supLvl: getVal('step6-level'),
+            s1m: getVal('step1-method'),
+            s2t: getVal('step2-type'),
+            s1: getChecked('step1-check'),
+            s2: getChecked('step2-check'),
+            s3: getChecked('step3-check'),
+            s4: getChecked('step4-check'),
+            s5: getChecked('step5-check'),
+            s6: getChecked('step6-check'),
+            frameType: getVal('frame-cat'),
+            frameSpec: getVal('frame-name'),
+            frameLen: getVal('frame-len')
+        };
+    }
+
+    function cloneData(value) {
+        return JSON.parse(JSON.stringify(value));
+    }
+
+    function captureHistoryState() {
+        return {
+            currentProjectTitle,
+            projectTitleInput: document.getElementById('project-title')?.value || currentProjectTitle,
+            listData: cloneData(listData),
+            inputState: cloneData(getCurrentInputState())
+        };
+    }
+
+    function pushHistory(label = "操作") {
+        if (isRestoringState) return;
+        undoStack.push({ label, state: captureHistoryState() });
+        if (undoStack.length > HISTORY_LIMIT) undoStack.shift();
+        redoStack = [];
+        updateUndoRedoButtons();
+    }
+
+    function restoreHistoryState(state) {
+        if (!state) return;
+        isRestoringState = true;
+        currentProjectTitle = state.currentProjectTitle || "****项目";
+        listData = normalizeListData(cloneData(state.listData || []));
+        editingIndex = -1;
+        expandedRows.clear();
+        document.getElementById('project-title').value = state.projectTitleInput || currentProjectTitle;
+        isRestoringState = false;
+
+        restoreInputState(state.inputState || null);
+        resetEditState();
+        renderList();
+
+        const projects = getProjects();
+        projects[currentProjectTitle] = {
+            title: currentProjectTitle,
+            listData,
+            inputState: getCurrentInputState(),
+            time: new Date().getTime()
+        };
+        setProjects(projects);
+        updateProjectSelector();
+        updateUndoRedoButtons();
+    }
+
+    function undoAction() {
+        if (undoStack.length === 0) return;
+        redoStack.push({ label: "恢复", state: captureHistoryState() });
+        const entry = undoStack.pop();
+        restoreHistoryState(entry.state);
+    }
+
+    function redoAction() {
+        if (redoStack.length === 0) return;
+        undoStack.push({ label: "撤销", state: captureHistoryState() });
+        const entry = redoStack.pop();
+        restoreHistoryState(entry.state);
+    }
+
+    function updateUndoRedoButtons() {
+        const undoBtn = document.getElementById('btn-undo');
+        const redoBtn = document.getElementById('btn-redo');
+        if (undoBtn) undoBtn.disabled = undoStack.length === 0;
+        if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+    }
+
+    function handleUndoRedoShortcut(e) {
+        const active = document.activeElement;
+        const tag = active && active.tagName ? active.tagName.toLowerCase() : "";
+        if (tag === "input" || tag === "textarea" || tag === "select" || active?.isContentEditable) return;
+
+        const key = e.key.toLowerCase();
+        const mod = e.ctrlKey || e.metaKey;
+        if (!mod) return;
+        if (key === "z" && !e.shiftKey) {
+            e.preventDefault();
+            undoAction();
+        } else if (key === "y" || (key === "z" && e.shiftKey)) {
+            e.preventDefault();
+            redoAction();
+        }
+    }
+
+    function getTemplateState() {
+        const state = getCurrentInputState();
+        delete state.part;
+        delete state.area;
+        delete state.frameLen;
+        return state;
+    }
+
+    function cleanMaterialLabel(value) {
+        return String(value || "").replace(/^[^0-9A-Za-z\u4e00-\u9fff]+/, "").trim();
+    }
+
+    function getMaterialIconMeta(mat) {
+        return MATERIAL_OBJECT_META[mat?.id] || MATERIAL_BADGE_META[mat?.id] || { badge:"board", tone:"board", mark:"", hint:"材料" };
+    }
+
+    function getToneStyle(tone) {
+        const colors = MATERIAL_BADGE_TONES[tone] || MATERIAL_BADGE_TONES.board;
+        return `--mat-bg-a:${colors[0]};--mat-bg-b:${colors[1]};--mat-ink:${colors[2]};`;
+    }
+
+    function getBadgeMark(meta) {
+        return "";
+    }
+
+    function getMaterialIconSvg(meta) {
+        const badge = meta?.badge || "board";
+        const mark = getBadgeMark(meta);
+        const svgMap = {
+            metal: `<svg viewBox="0 0 40 40"><rect class="soft-fill" x="5" y="8" width="30" height="24" rx="7"/><path d="M9 15h22M9 20h22M9 25h22" opacity=".45"/><path d="M12 30 31 11" opacity=".65"/><path d="M9 12h8" opacity=".9"/>${mark}</svg>`,
+            glass: `<svg viewBox="0 0 40 40"><path class="soft-fill" d="M10 7h20l-3 26H7l3-26Z"/><path d="M10 7h20l-3 26H7l3-26Z"/><path d="M14 29 26 10M10 22l7-11" opacity=".65"/>${mark}</svg>`,
+            stone: `<svg viewBox="0 0 40 40"><path class="soft-fill" d="M7 26 12 9h18l4 15-7 8H13l-6-6Z"/><path d="M7 26 12 9h18l4 15-7 8H13l-6-6Z"/><path d="M13 10c3 6 0 11 5 20M28 10c-5 5-3 10-8 15M9 25h23" opacity=".55"/>${mark}</svg>`,
+            wood: `<svg viewBox="0 0 40 40"><rect class="soft-fill" x="6" y="9" width="28" height="22" rx="6"/><path d="M11 14c6 4 8-4 16 0M10 21c7-5 12 5 20 0M12 28c4-4 8 4 14 0" opacity=".75"/><path d="M14 10v20M25 10v20" opacity=".35"/>${mark}</svg>`,
+            fabric: `<svg viewBox="0 0 40 40"><rect class="soft-fill" x="7" y="8" width="26" height="24" rx="6"/><path d="M11 10v20M16 10v20M21 10v20M26 10v20M8 14h24M8 20h24M8 26h24" opacity=".48"/><path d="M9 11c4 4 7 4 11 0s7-4 11 0" opacity=".55"/>${mark}</svg>`,
+            leather: `<svg viewBox="0 0 40 40"><path class="soft-fill" d="M11 8c6 3 12 3 18 0l4 8-5 3v13H12V19l-5-3 4-8Z"/><path d="M11 8c6 3 12 3 18 0l4 8-5 3v13H12V19l-5-3 4-8Z"/><path d="M15 16h10M15 22h10" opacity=".55"/><circle class="fill" cx="13" cy="27" r="1"/><circle class="fill" cx="27" cy="27" r="1"/>${mark}</svg>`,
+            foam: `<svg viewBox="0 0 40 40"><rect class="soft-fill" x="7" y="9" width="26" height="22" rx="8"/><rect x="7" y="9" width="26" height="22" rx="8"/><circle cx="13" cy="15" r="1.2"/><circle cx="22" cy="14" r="1"/><circle cx="28" cy="20" r="1.3"/><circle cx="17" cy="25" r="1.1"/><circle cx="27" cy="28" r="1"/>${mark}</svg>`,
+            fill: `<svg viewBox="0 0 40 40"><path class="soft-fill" d="M11 27h17a6 6 0 0 0 0-12 8 8 0 0 0-15-1 6.5 6.5 0 0 0-2 13Z"/><path d="M11 27h17a6 6 0 0 0 0-12 8 8 0 0 0-15-1 6.5 6.5 0 0 0-2 13Z"/><path d="M13 25c5 2 12 2 17-1" opacity=".45"/>${mark}</svg>`,
+            bubble: `<svg viewBox="0 0 40 40"><circle class="soft-fill" cx="15" cy="24" r="7"/><circle cx="15" cy="24" r="7"/><circle cx="26" cy="15" r="5"/><circle cx="28" cy="28" r="2.5"/><circle cx="12" cy="11" r="2"/>${mark}</svg>`,
+            board: `<svg viewBox="0 0 40 40"><path class="soft-fill" d="M9 7h22v26H9z"/><path d="M9 7h22v26H9zM13 13h14M13 20h14M13 27h14"/><path d="M31 7 34 10v26H12l-3-3" opacity=".35"/>${mark}</svg>`,
+            mesh: `<svg viewBox="0 0 40 40"><rect class="soft-fill" x="7" y="7" width="26" height="26" rx="5"/><path d="M8 14h24M8 20h24M8 26h24M14 8v24M20 8v24M26 8v24"/><path d="M8 8 32 32M32 8 8 32" opacity=".35"/>${mark}</svg>`,
+            paint: `<svg viewBox="0 0 40 40"><path class="soft-fill" d="M10 8h16l5 5v9a9 9 0 0 1-9 9H10V8Z"/><path d="M10 8h16l5 5v9a9 9 0 0 1-9 9H10V8Z"/><circle class="fill" cx="15" cy="16" r="1.6"/><circle class="fill" cx="23" cy="18" r="1.6"/><circle class="fill" cx="17" cy="25" r="1.6"/><path d="M27 28c4 0 5-3 4-6" opacity=".6"/>${mark}</svg>`,
+            plant: `<svg viewBox="0 0 40 40"><path class="soft-fill" d="M8 31c14 0 22-10 24-22C20 10 10 17 8 31Z"/><path d="M8 31c14 0 22-10 24-22C20 10 10 17 8 31Z"/><path d="M10 31c6-8 12-13 20-19M17 23c-2-4-5-6-8-7M23 17c1-3 4-5 8-6"/>${mark}</svg>`,
+            light: `<svg viewBox="0 0 40 40"><rect class="soft-fill" x="8" y="16" width="24" height="8" rx="4"/><path d="M8 20h24M12 20v-6M20 20v-8M28 20v-6"/><path d="M9 30c6-3 16-3 22 0M9 10c6 3 16 3 22 0" opacity=".45"/>${mark}</svg>`,
+            print: `<svg viewBox="0 0 40 40"><path class="soft-fill" d="M11 8h18v8H11zM8 20h24v10H8z"/><path d="M11 8h18v8H11zM8 20h24v10H8zM13 30h14v4H13z"/><path d="M13 24h14M16 27h8" opacity=".55"/>${mark}</svg>`,
+            tile: `<svg viewBox="0 0 40 40"><rect class="soft-fill" x="7" y="7" width="26" height="26" rx="5"/><path d="M7 20h26M20 7v26M7 7h26v26H7z"/><path d="M11 11h5M24 24h5" opacity=".55"/>${mark}</svg>`,
+            cement: `<svg viewBox="0 0 40 40"><rect class="soft-fill" x="7" y="9" width="26" height="22" rx="5"/><path d="M7 16h26M7 24h26M15 9v7M25 16v8M17 24v7"/><circle class="fill" cx="13" cy="20" r="1"/><circle class="fill" cx="28" cy="28" r="1"/>${mark}</svg>`,
+            fiberglass: `<svg viewBox="0 0 40 40"><path class="soft-fill" d="M7 24c6 8 20 8 26 0-5-10-21-10-26 0Z"/><path d="M7 24c6 8 20 8 26 0-5-10-21-10-26 0Z"/><path d="M11 23c4-4 14-4 18 0M14 28h12M13 19l14 10M27 19 13 29" opacity=".48"/>${mark}</svg>`,
+            acoustic: `<svg viewBox="0 0 40 40"><rect class="soft-fill" x="7" y="8" width="26" height="24" rx="6"/><path d="M12 13h16M12 19h16M12 25h16"/><circle class="fill" cx="14" cy="16" r="1"/><circle class="fill" cx="20" cy="22" r="1"/><circle class="fill" cx="26" cy="16" r="1"/>${mark}</svg>`
+        };
+        return svgMap[badge] || svgMap.board;
+    }
+
+    function getBadgeMark(meta) {
+        return "";
+    }
+
+    function getMaterialIconSvg(meta) {
+        const badge = meta?.badge || "pvcStack";
+        const alias = {
+            stainlessPanel:"stainlessSheet", laminatedGlass:"glassPane", acrylicSheetIcon:"glassPane",
+            marbleSlab:"stoneBlock", graniteBlock:"stoneBlock", aluminumFacade:"aluminumPanel",
+            frpPanel:"fiberglassShell", propShell:"fiberglassShell", woodVeneer:"woodLog",
+            floorPlank:"woodLog", gypsumBoard:"boardSheet", cementBoardStack:"boardSheet",
+            ceilingPanel:"boardSheet", pcPanel:"clearShield", resinPrinter:"printerPart",
+            nylonPrint:"printerPart", steelMesh:"meshGrid", aluminumMesh:"meshGrid",
+            largeSlab:"tileGrid", lockFloor:"tileGrid", acousticPanel:"fabricRoll",
+            carpetTile:"fabricRoll", wallpaperRoll:"fabricRoll", firmSponge:"spongeBlock",
+            puFoam:"epsBlock", evaCut:"foamCut", grgColumn:"shapeColumn"
+        };
+        const shape = alias[badge] || badge;
+        const wrap = body => `<svg viewBox="0 0 32 32" aria-hidden="true">${body}</svg>`;
+        const drawings = {
+            stainlessSheet: wrap(`<rect class="soft-fill" x="7" y="8" width="18" height="16" rx="3"/><rect x="7" y="8" width="18" height="16" rx="3"/><path d="M11 21 22 10M9 16l6-6M17 24l7-7" opacity=".7"/>`),
+            marineSheet: wrap(`<rect class="soft-fill" x="7" y="7" width="18" height="13" rx="3"/><rect x="7" y="7" width="18" height="13" rx="3"/><path d="M10 12h12M10 16h8"/><path d="M6 25c2-2 4-2 6 0s4 2 6 0 4-2 6 0 4 2 6 0" opacity=".8"/>`),
+            cortenPlate: wrap(`<rect class="soft-fill" x="7" y="7" width="18" height="18" rx="3"/><rect x="7" y="7" width="18" height="18" rx="3"/><circle class="fill" cx="12" cy="12" r="1.3"/><circle class="fill" cx="20" cy="16" r="1.1"/><circle class="fill" cx="15" cy="21" r=".9"/><path d="M10 23 23 10" opacity=".35"/>`),
+            aluminumPanel: wrap(`<rect class="soft-fill" x="7" y="8" width="18" height="16" rx="2"/><rect x="7" y="8" width="18" height="16" rx="2"/><path d="M13 8v16M19 8v16"/><circle class="fill" cx="10" cy="11" r=".8"/><circle class="fill" cx="22" cy="21" r=".8"/>`),
+            copperPipe: wrap(`<path class="soft-fill" d="M8 11h15a4 4 0 0 1 0 8H8a4 4 0 0 1 0-8Z"/><path d="M8 11h15a4 4 0 0 1 0 8H8a4 4 0 0 1 0-8Z"/><circle cx="8" cy="15" r="4"/><path d="M9 24h16" opacity=".65"/>`),
+            bronzeCast: wrap(`<path class="soft-fill" d="M12 7h8l3 6-3 12h-8L9 13l3-6Z"/><path d="M12 7h8l3 6-3 12h-8L9 13l3-6Z"/><path d="M11 13h10M13 20h6"/>`),
+            ironCasting: wrap(`<circle class="soft-fill" cx="16" cy="16" r="9"/><circle cx="16" cy="16" r="9"/><circle cx="16" cy="16" r="3.5"/><path d="M16 5v4M16 23v4M5 16h4M23 16h4M8.5 8.5l3 3M23.5 8.5l-3 3M8.5 23.5l3-3M23.5 23.5l-3-3"/>`),
+            metalFrame: wrap(`<rect class="soft-fill" x="7" y="8" width="18" height="16" rx="2"/><path d="M8 9h16v14H8zM12 9v14M20 9v14M8 14h16M8 20h16M12 14l8 6M20 14l-8 6"/>`),
+            fiberglassShell: wrap(`<path class="soft-fill" d="M5 20c5 6 17 6 22 0-4-8-18-8-22 0Z"/><path d="M5 20c5 6 17 6 22 0-4-8-18-8-22 0Z"/><path d="M9 19c3-3 11-3 14 0M11 23h10M10 16l12 8M22 16l-12 8" opacity=".55"/>`),
+            clearResin: wrap(`<path class="soft-fill" d="M16 5c5 6 8 10 8 15a8 8 0 0 1-16 0c0-5 3-9 8-15Z"/><path d="M16 5c5 6 8 10 8 15a8 8 0 0 1-16 0c0-5 3-9 8-15Z"/><path d="M12 21c1 2 3 3 5 3M18 9l6 6" opacity=".55"/>`),
+            glassPane: wrap(`<path class="soft-fill" d="M10 6h14l-3 20H7l3-20Z"/><path d="M10 6h14l-3 20H7l3-20Z"/><path d="M12 23 21 9M9 17l5-8" opacity=".68"/>`),
+            clearShield: wrap(`<path class="soft-fill" d="M16 5 25 9v7c0 6-4 10-9 12-5-2-9-6-9-12V9l9-4Z"/><path d="M16 5 25 9v7c0 6-4 10-9 12-5-2-9-6-9-12V9l9-4Z"/><path d="M12 16h8"/>`),
+            printerPart: wrap(`<path class="soft-fill" d="M10 6h12v7H10zM7 17h18v8H7z"/><path d="M10 6h12v7H10zM7 17h18v8H7z"/><path d="M12 25c1-4 7-4 8 0M13 21h6"/>`),
+            meshGrid: wrap(`<rect class="soft-fill" x="6" y="6" width="20" height="20" rx="3"/><path d="M7 12h18M7 18h18M12 7v18M18 7v18"/><path d="M7 7 25 25M25 7 7 25" opacity=".45"/>`),
+            stoneBlock: wrap(`<path class="soft-fill" d="M7 21 12 8h11l4 13-5 5H12l-5-5Z"/><path d="M7 21 12 8h11l4 13-5 5H12l-5-5Z"/><path d="M12 8c3 5 0 10 4 18M23 9c-4 4-3 8-7 12M9 21h17" opacity=".58"/>`),
+            concreteWall: wrap(`<rect class="soft-fill" x="6" y="8" width="20" height="17" rx="2"/><path d="M6 14h20M6 20h20M15 8v6M11 14v6M21 14v6M15 20v5"/><circle class="fill" cx="10" cy="17" r=".8"/><circle class="fill" cx="23" cy="23" r=".8"/>`),
+            terrazzoChip: wrap(`<rect class="soft-fill" x="6" y="6" width="20" height="20" rx="3"/><rect x="6" y="6" width="20" height="20" rx="3"/><path d="M10 11 14 9M18 10l5 3M11 20l4 4M19 22l5-2M15 16l4 2"/><circle class="fill" cx="10" cy="16" r=".9"/>`),
+            trowelCoat: wrap(`<path class="soft-fill" d="M7 21 21 7l5 5-14 14H7v-5Z"/><path d="M7 21 21 7l5 5-14 14H7v-5Z"/><path d="M18 10l5 5M7 26h14"/>`),
+            paintPalette: wrap(`<path class="soft-fill" d="M8 7h13l5 5v7a8 8 0 0 1-8 8H8V7Z"/><path d="M8 7h13l5 5v7a8 8 0 0 1-8 8H8V7Z"/><circle class="fill" cx="13" cy="13" r="1.4"/><circle class="fill" cx="19" cy="16" r="1.4"/><circle class="fill" cx="14" cy="22" r="1.4"/>`),
+            paintRoller: wrap(`<path class="soft-fill" d="M7 8h17a3 3 0 0 1 0 6H7a3 3 0 0 1 0-6Z"/><path d="M7 8h17a3 3 0 0 1 0 6H7a3 3 0 0 1 0-6Z"/><path d="M24 11h4v7H18v9M18 27h-5"/>`),
+            tileGrid: wrap(`<rect class="soft-fill" x="6" y="6" width="20" height="20" rx="3"/><path d="M6 16h20M16 6v20M6 6h20v20H6z"/><path d="M10 10h4M19 19h3" opacity=".6"/>`),
+            boardSheet: wrap(`<path class="soft-fill" d="M8 6h17v20H8z"/><path d="M8 6h17v20H8zM11 10h11M11 16h11M11 22h11"/><path d="M25 6 27 8v20" opacity=".4"/>`),
+            osbBoard: wrap(`<rect class="soft-fill" x="7" y="7" width="18" height="18" rx="3"/><rect x="7" y="7" width="18" height="18" rx="3"/><path d="M10 12l7-3M18 13l5-2M11 19l6-3M18 23l6-3M10 24l4-2" opacity=".82"/>`),
+            gridCeiling: wrap(`<path d="M6 10h20M6 16h20M6 22h20M10 6v20M16 6v20M22 6v20"/><rect class="soft-fill" x="6" y="6" width="20" height="20" rx="2"/>`),
+            woodLog: wrap(`<circle class="soft-fill" cx="12" cy="16" r="8"/><circle cx="12" cy="16" r="8"/><path d="M12 10c3 3 3 9 0 12M6 16h12M20 11h7M20 21h7"/><path d="M23 9c2 5 2 9 0 14" opacity=".6"/>`),
+            woodCrate: wrap(`<rect class="soft-fill" x="7" y="8" width="18" height="17" rx="2"/><path d="M7 8h18v17H7zM7 13h18M7 20h18M12 8v17M20 8v17M7 8l18 17M25 8 7 25"/>`),
+            fabricRoll: wrap(`<path class="soft-fill" d="M8 10h15a5 5 0 0 1 0 10H8z"/><path d="M8 10h15a5 5 0 0 1 0 10H8z"/><circle cx="23" cy="15" r="5"/><path d="M9 24c5 3 11 3 17 0M9 10c5 3 11 3 17 0" opacity=".55"/>`),
+            canvasFrame: wrap(`<rect class="soft-fill" x="6" y="8" width="20" height="14" rx="2"/><path d="M6 8h20v14H6zM11 26h10M16 22v4"/><path d="m9 19 4-5 4 4 3-3 3 4" opacity=".75"/>`),
+            leatherHide: wrap(`<path class="soft-fill" d="M10 6c4 3 8 3 12 0l4 6-4 3v11H10V15l-4-3 4-6Z"/><path d="M10 6c4 3 8 3 12 0l4 6-4 3v11H10V15l-4-3 4-6Z"/><path d="M13 13h7M13 19h7" opacity=".55"/>`),
+            spongeBlock: wrap(`<rect class="soft-fill" x="6" y="8" width="20" height="17" rx="6"/><rect x="6" y="8" width="20" height="17" rx="6"/><circle cx="11" cy="13" r="1.2"/><circle cx="18" cy="12" r="1"/><circle cx="22" cy="18" r="1.2"/><circle cx="13" cy="21" r="1"/><circle cx="21" cy="23" r=".9"/>`),
+            downPillow: wrap(`<path class="soft-fill" d="M9 11c2-4 12-4 14 0 4 2 4 10 0 12-2 4-12 4-14 0-4-2-4-10 0-12Z"/><path d="M9 11c2-4 12-4 14 0 4 2 4 10 0 12-2 4-12 4-14 0-4-2-4-10 0-12Z"/><path d="M10 17c4 3 9 3 13 0" opacity=".55"/>`),
+            signFoamBoard: wrap(`<path class="soft-fill" d="M6 10h20v13H6z"/><path d="M6 10h20v13H6zM6 14h20M6 19h20"/><circle class="fill" cx="10" cy="16.5" r=".8"/><circle class="fill" cx="15" cy="16.5" r=".8"/><circle class="fill" cx="20" cy="16.5" r=".8"/>`),
+            pvcStack: wrap(`<path class="soft-fill" d="M7 11h19v13H7z"/><path d="M7 11h19v13H7zM10 8h19v13M7 16h19M7 21h19"/><path d="M11 24 25 12" opacity=".35"/>`),
+            foamCut: wrap(`<path class="soft-fill" d="M7 11h20v14H7z"/><path d="M7 11h20v14H7z"/><path d="M10 22 24 12M11 13l13 10" opacity=".55"/>`),
+            epsBlock: wrap(`<path class="soft-fill" d="M8 11 16 6l9 5v12l-9 5-8-5V11Z"/><path d="M8 11 16 6l9 5v12l-9 5-8-5V11ZM8 11l8 5 9-5M16 16v12"/><circle class="fill" cx="12" cy="13" r=".8"/><circle class="fill" cx="21" cy="20" r=".8"/>`),
+            pearlFoam: wrap(`<circle class="soft-fill" cx="12" cy="20" r="6"/><circle cx="12" cy="20" r="6"/><circle cx="22" cy="12" r="4"/><circle cx="23" cy="23" r="2"/><circle cx="10" cy="9" r="1.8"/>`),
+            plantStem: wrap(`<path class="soft-fill" d="M6 25c10 0 17-8 20-18-10 1-17 7-20 18Z"/><path d="M6 25c10 0 17-8 20-18-10 1-17 7-20 18Z"/><path d="M8 25c5-7 10-11 17-15M14 18c-2-3-4-4-7-5M19 13c1-3 3-4 6-5"/>`),
+            ledStrip: wrap(`<rect class="soft-fill" x="6" y="13" width="20" height="7" rx="3.5"/><path d="M6 16.5h20"/><circle class="fill" cx="10" cy="16.5" r="1.3"/><circle class="fill" cx="16" cy="16.5" r="1.3"/><circle class="fill" cx="22" cy="16.5" r="1.3"/><path d="M8 25c5-3 11-3 16 0M8 8c5 3 11 3 16 0" opacity=".45"/>`),
+            shapeColumn: wrap(`<path class="soft-fill" d="M11 9h10v16H11z"/><path d="M9 9h14M8 25h16M12 12h8M13 12v13M19 12v13"/><path d="M9 9 16 5l7 4" opacity=".7"/>`)
+        };
+        return drawings[shape] || drawings.boardSheet;
+    }
+
+    function renderMaterialPicker() {
+        const picker = document.getElementById('material-picker');
+        const menu = document.getElementById('material-picker-menu');
+        const cat = document.getElementById('global-cat')?.value;
+        if (!picker || !menu || !cat) return;
+
+        const selectedId = document.getElementById('step3-mat')?.value;
+        menu.innerHTML = (MATERIALS[cat] || []).map(mat => {
+            const meta = getMaterialIconMeta(mat);
+            const active = mat.id === selectedId ? " active" : "";
+            return `
+                <button type="button" class="material-option${active}" data-mat-id="${escapeHtml(mat.id)}" onclick="selectMaterial('${escapeHtml(mat.id)}')">
+                    <span class="material-icon" style="${getToneStyle(meta.tone)}">${getMaterialIconSvg(meta)}</span>
+                    <span style="min-width:0;">
+                        <span class="material-option-name">${escapeHtml(cleanMaterialLabel(mat.n))}</span>
+                        <span class="material-option-meta">${escapeHtml(meta.hint || "")}</span>
+                    </span>
+                </button>
+            `;
+        }).join("");
+        updateMaterialPickerSelection();
+    }
+
+    function updateMaterialPickerSelection() {
+        const cat = document.getElementById('global-cat')?.value;
+        const matId = document.getElementById('step3-mat')?.value;
+        const mat = getMaterialData(cat, matId);
+        const icon = document.getElementById('material-picker-icon');
+        const text = document.getElementById('material-picker-text');
+        if (!mat || !icon || !text) return;
+
+        const meta = getMaterialIconMeta(mat);
+        icon.innerHTML = getMaterialIconSvg(meta);
+        icon.setAttribute('style', getToneStyle(meta.tone));
+        text.textContent = cleanMaterialLabel(mat.n);
+
+        document.querySelectorAll('.material-option').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-mat-id') === matId);
+        });
+    }
+
+    function toggleMaterialPicker(event) {
+        event?.stopPropagation();
+        document.getElementById('material-picker')?.classList.toggle('open');
+    }
+
+    function closeMaterialPicker() {
+        document.getElementById('material-picker')?.classList.remove('open');
+    }
+
+    function selectMaterial(matId) {
+        const sel = document.getElementById('step3-mat');
+        if (!sel) return;
+        sel.value = matId;
+        closeMaterialPicker();
+        renderMaterialPicker();
+        updateStep3(); 
+    }
+
+    function getMaterialLabel(matId, cat = "") {
+        const all = cat && MATERIALS[cat] ? MATERIALS[cat] : [...(MATERIALS.art || []), ...(MATERIALS.eng || []), ...(MATERIALS.prop || [])];
+        const found = all.find(m => m.id === matId);
+        return found ? cleanMaterialLabel(found.n) : cleanMaterialLabel(matId) || "-";
+    }
+
+    function getMaterialData(cat, matId) {
+        return (MATERIALS[cat] || []).find(m => m.id === matId) || null;
+    }
+
+    function buildFeatureSpec(cat, mat) {
+        const desc = mat?.desc || "材料供应、加工、安装及成品保护。";
+        const effectLine = cat === 'eng'
+            ? "面层排版、颜色、纹理、收边方式及安装位置按设计文件、深化图纸及确认样执行。"
+            : "成品造型、画面效果、颜色、安装位置及固定方式按设计文件、加工图及确认样执行。";
+
+        return [desc, effectLine].join('\n');
+    }
+
+    function findMaterialByItemText(item) {
+        const text = `${item?.name || ""} ${item?.matCol || ""}`;
+        for (const cat of ['eng', 'prop']) {
+            const found = (MATERIALS[cat] || []).find(m => text.includes(cleanMaterialLabel(m.n)));
+            if (found) return { cat, mat: found };
+        }
+        return null;
+    }
+
+    function normalizeListItem(item) {
+        if (!item || typeof item !== 'object') return item;
+        const next = { ...item };
+        const inputs = next.inputs || {};
+
+        if (inputs.isFrame) return next;
+
+        if (!inputs.cat) {
+            if (next.name && String(next.name).includes("铸铁")) next.name = String(next.name).replace(/铸铁/g, "铁");
+            if (next.matCol && String(next.matCol).includes("铸铁")) next.matCol = String(next.matCol).replace(/铸铁/g, "铁");
+        }
+
+        if (inputs.cat === 'art') {
+            const matMeta = getMaterialData('art', inputs.matId);
+            if (matMeta) {
+                const matName = cleanMaterialLabel(matMeta.n);
+                if (next.name && String(next.name).includes("铸铁")) next.name = String(next.name).replace(/铸铁/g, matName);
+                if (next.matCol && String(next.matCol).includes("铸铁")) next.matCol = String(next.matCol).replace(/铸铁/g, matName);
+            }
+            return next;
+        }
+
+        let cat = inputs.cat;
+        let matMeta = cat ? getMaterialData(cat, inputs.matId) : null;
+        if (!matMeta) {
+            const inferred = findMaterialByItemText(next);
+            if (inferred) {
+                cat = inferred.cat;
+                matMeta = inferred.mat;
+            }
+        }
+
+        if ((cat === 'eng' || cat === 'prop') && matMeta) {
+            const matName = cleanMaterialLabel(matMeta.n);
+            const oldThkMatch = String(next.matCol || "").match(/T\s*=\s*([\d.]+)\s*mm/i);
+            const thkValue = inputs.thk || (oldThkMatch ? oldThkMatch[1] : "");
+            const thk = Number(thkValue || 0);
+            next.name = matName;
+            next.matCol = matName + (thk > 0 ? ` T=${thkValue}mm` : "");
+            next.spec = buildFeatureSpec(cat, matMeta);
+            next.unitVal = next.unitVal || "㎡";
+            if (!next.qtyVal && next.calcArea) next.qtyVal = parseFloat(next.calcArea) || 0;
+        }
+
+        return next;
+    }
+
+    function normalizeListData(items) {
+        return Array.isArray(items) ? items.map(normalizeListItem) : [];
+    }
+
+    function getFormLabel(form) {
+        return ({ round:"圆雕", high:"高浮雕", low:"浅浮雕", flat:"平浮雕", line:"阴阳刻线" })[form] || "-";
+    }
+
+    function getProcessLabel(proc) {
+        return ({ forging:"锻造", casting:"铸造", other:"标准", paint_only:"纯表面绘制", none:"标准加工" })[proc] || proc || "-";
+    }
+
+    function getCurrentSummary() {
+        const state = getCurrentInputState();
+        return `${getMaterialLabel(state.matId)} / ${getProcessLabel(state.proc)} / ${getFormLabel(state.form)} / ${state.thk || "默认"}mm`;
+    }
+
+    function renderTemplateSelector() {
+        const sel = document.getElementById('template-selector');
+        const count = document.getElementById('template-count');
+        if (!sel) return;
+        const templates = getTemplates().sort((a, b) => (b.time || 0) - (a.time || 0));
+        sel.innerHTML = "";
+        if (templates.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = "";
+            opt.text = "暂无模板，先保存当前工艺组合";
+            sel.add(opt);
+        } else {
+            templates.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.text = `${t.name}｜${t.summary || ""}`;
+                sel.add(opt);
+            });
+        }
+        if (count) count.innerText = `${templates.length} 个模板`;
+    }
+
+    function saveCurrentTemplate() {
+        const state = getTemplateState();
+        const defaultName = `${getMaterialLabel(state.matId)}-${getProcessLabel(state.proc)}-${getFormLabel(state.form)}`;
+        const name = prompt("模板名称：", defaultName);
+        if (!name) return;
+        const templates = getTemplates();
+        const existingIdx = templates.findIndex(t => t.name === name.trim());
+        const tpl = {
+            id: existingIdx >= 0 ? templates[existingIdx].id : `tpl_${Date.now()}`,
+            name: name.trim(),
+            summary: getCurrentSummary(),
+            state,
+            time: Date.now()
+        };
+        if (existingIdx >= 0) templates[existingIdx] = tpl;
+        else templates.push(tpl);
+        setTemplates(templates);
+        renderTemplateSelector();
+    }
+
+    function applySelectedTemplate() {
+        const sel = document.getElementById('template-selector');
+        if (!sel || !sel.value) return alert("请先选择一个模板。");
+        const tpl = getTemplates().find(t => t.id === sel.value);
+        if (!tpl) return alert("模板不存在，可能已被删除。");
+        pushHistory("套用模板");
+        const current = getCurrentInputState();
+        restoreInputState({
+            ...tpl.state,
+            part: current.part,
+            area: current.area,
+            frameLen: current.frameLen
+        });
+        autoSave();
+    }
+
+    function deleteSelectedTemplate() {
+        const sel = document.getElementById('template-selector');
+        if (!sel || !sel.value) return alert("请先选择一个模板。");
+        const templates = getTemplates();
+        const tpl = templates.find(t => t.id === sel.value);
+        if (!tpl) return;
+        if (!confirm(`删除模板【${tpl.name}】吗？`)) return;
+        setTemplates(templates.filter(t => t.id !== sel.value));
+        renderTemplateSelector();
+    }
+
+    function restoreInputState(state) {
+        if (!state) {
+            ['art-dim-l', 'art-dim-w', 'art-dim-h'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = "";
+            });
+            updateCat();
+            calcAll();
+            updateFrameCalc();
+            return;
+        }
+
+        isRestoringState = true;
+        try {
+            document.getElementById('global-cat').value = state.cat || 'art';
+            updateCat();
+
+            if (state.part !== undefined) document.getElementById('current-part').value = state.part;
+            if (state.area !== undefined) document.getElementById('global-area').value = state.area;
+            if (state.dimL !== undefined) document.getElementById('art-dim-l').value = state.dimL;
+            if (state.dimW !== undefined) document.getElementById('art-dim-w').value = state.dimW;
+            if (state.dimH !== undefined) document.getElementById('art-dim-h').value = state.dimH;
+            if (state.form) document.getElementById('global-form').value = state.form;
+
+            const matSel = document.getElementById('step3-mat');
+            if (state.matId && Array.from(matSel.options).some(opt => opt.value === state.matId)) {
+                matSel.value = state.matId;
+                updateStep3();
+            }
+
+            const procSel = document.getElementById('step3-process');
+            if (state.proc && Array.from(procSel.options).some(opt => opt.value === state.proc)) {
+                procSel.value = state.proc;
+            }
+
+            if (state.thk !== undefined) document.getElementById('step3-thk').value = state.thk;
+            if (state.meshW !== undefined) document.getElementById('step3-mesh-wire').value = state.meshW;
+            if (state.meshH !== undefined) document.getElementById('step3-mesh-hole').value = state.meshH;
+            if (state.coop !== undefined) document.getElementById('step3-coop').value = state.coop;
+            if (state.base !== undefined) document.getElementById('step3-base').value = state.base;
+            if (state.finish) document.getElementById('step4-finish').value = state.finish;
+            handleFinishChange();
+            if (state.finishText !== undefined) document.getElementById('step4-finish-text').value = state.finishText;
+            if (state.finishRate !== undefined) document.getElementById('step4-finish-rate').value = state.finishRate;
+            if (state.paintLvl) document.getElementById('step5-level').value = state.paintLvl;
+            if (state.supLvl) document.getElementById('step6-level').value = state.supLvl;
+            if (state.s1m) document.getElementById('step1-method').value = state.s1m;
+            if (state.s2t) document.getElementById('step2-type').value = state.s2t;
+
+            ['step1','step2','step3','step4','step5','step6'].forEach(id => {
+                const key = id.replace('step', 's');
+                const chk = document.getElementById(id + '-check');
+                if (typeof state[key] === 'boolean') chk.checked = state[key];
+                chk.disabled = false;
+                document.getElementById('card-' + id).style.opacity = chk.checked ? '1' : '0.4';
+            });
+
+            if (state.frameType) document.getElementById('frame-cat').value = state.frameType;
+            renderFrameProfiles();
+            if (state.frameSpec) document.getElementById('frame-name').value = state.frameSpec;
+            if (state.frameLen !== undefined) document.getElementById('frame-len').value = state.frameLen;
+            updateFrameCalc();
+            calcAll();
+        } finally {
+            isRestoringState = false;
+        }
+    }
+
+    // === 核心管理：分离“手动保存”与“后台无感防丢” ===
+    function initStorage() {
+        let projects = getProjects();
+        let keys = Object.keys(projects);
+        
+        if (keys.length > 0) {
+            let arr = Object.values(projects).sort((a,b) => b.time - a.time);
+            loadProject(arr[0].title, true);
+        } else {
+            createNewProject(true);
+        }
+        updateProjectSelector();
+    }
+
+    function autoSave() {
+        if (!currentProjectTitle || isRestoringState) return;
+        listData = normalizeListData(listData);
+        let projects = getProjects();
+        if (projects[currentProjectTitle]) {
+            projects[currentProjectTitle].listData = listData;
+            projects[currentProjectTitle].inputState = getCurrentInputState();
+            projects[currentProjectTitle].time = new Date().getTime();
+            setProjects(projects);
+        }
+    }
+
+    function manualSave() {
+        const inputTitle = document.getElementById('project-title').value.trim() || "****项目";
+        let projects = getProjects();
+
+        if (inputTitle !== currentProjectTitle && projects[inputTitle]) {
+            if (!confirm(`存档库中已存在名为【${inputTitle}】的项目，是否将其覆盖？`)) {
+                document.getElementById('project-title').value = currentProjectTitle;
+                return;
+            }
+        }
+
+        if (inputTitle !== currentProjectTitle && projects[currentProjectTitle]) {
+            delete projects[currentProjectTitle];
+        }
+
+        currentProjectTitle = inputTitle; 
+        projects[currentProjectTitle] = {
+            title: currentProjectTitle,
+            listData: normalizeListData(listData),
+            inputState: getCurrentInputState(),
+            time: new Date().getTime()
+        };
+        
+        setProjects(projects);
+        updateProjectSelector();
+        
+        const btn = document.getElementById('btn-save-project');
+        const originalText = "保存";
+        btn.innerText = "✅ 已保存";
+        btn.style.backgroundColor = "#059669";
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.style.backgroundColor = "#10b981";
+        }, 2000);
+    }
+
+    function loadProject(title, skipHistory = false) {
+        if(!title) return;
+        let projects = getProjects();
+        if(projects[title]) {
+            if (!skipHistory && title !== currentProjectTitle) pushHistory("切换项目");
+            document.getElementById('project-title').value = projects[title].title;
+            currentProjectTitle = projects[title].title;
+            listData = normalizeListData(projects[title].listData || []);
+            
+            resetEditState();
+            restoreInputState(projects[title].inputState);
+            renderList();
+            autoSave();
+        }
+    }
+
+    function createNewProject(isInit = false) {
+        if (!isInit) autoSave(); 
+        if (!isInit) pushHistory("新建项目");
+        
+        const newName = getUniqueProjectTitle("****项目");
+        document.getElementById('project-title').value = newName;
+        currentProjectTitle = newName;
+        listData = [];
+        resetEditState();
+        restoreInputState(null);
+        renderList();
+        
+        let projects = getProjects();
+        projects[currentProjectTitle] = {
+            title: currentProjectTitle,
+            listData: listData,
+            inputState: getCurrentInputState(),
+            time: new Date().getTime()
+        };
+        setProjects(projects);
+        updateProjectSelector();
+    }
+
+    function delProject() {
+        const title = currentProjectTitle; 
+        if(confirm(`⚠️ 确定永久删除项目【${title}】的本地缓存吗？不可恢复！`)) {
+            pushHistory("删除项目");
+            let projects = getProjects();
+            delete projects[title];
+            setProjects(projects);
+            
+            updateProjectSelector();
+            
+            let remainingKeys = Object.keys(projects);
+            if (remainingKeys.length > 0) {
+                let arr = Object.values(projects).sort((a,b) => b.time - a.time);
+                loadProject(arr[0].title);
+            } else {
+                createNewProject(true);
+            }
+        }
+    }
+
+    function updateProjectSelector() {
+        const sel = document.getElementById('project-selector');
+        sel.innerHTML = '<option value="">📁 切换历史项目...</option>';
+        let projects = getProjects();
+        
+        let arr = Object.values(projects).sort((a,b) => b.time - a.time);
+        arr.forEach(p => {
+            let opt = document.createElement('option');
+            opt.value = p.title;
+            opt.text = p.title;
+            sel.add(opt);
+        });
+        sel.value = currentProjectTitle; 
+    }
+
+    function exportProjectData() {
+        autoSave();
+        const projects = getProjects();
+        const exportTitle = document.getElementById('project-title').value.trim() || currentProjectTitle || "雕塑计算项目";
+        listData = normalizeListData(listData);
+        const project = projects[currentProjectTitle] || {
+            title: exportTitle,
+            listData: listData,
+            inputState: getCurrentInputState(),
+            time: new Date().getTime()
+        };
+        project.title = exportTitle;
+        const payload = {
+            app: "sculpture-quota-calculator",
+            version: "11.06",
+            exportedAt: new Date().toISOString(),
+            currentProjectTitle: exportTitle,
+            project: project
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${safeFileName(exportTitle)}-雕塑计算备份.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function promptImportProject() {
+        document.getElementById('project-import-file').click();
+    }
+
+    function handleImportFile(event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function() {
+            try {
+                const payload = JSON.parse(reader.result);
+                const importedProject = payload.project || payload;
+                if (!importedProject || !Array.isArray(importedProject.listData)) {
+                    throw new Error("缺少 listData");
+                }
+
+                pushHistory("导入项目文件");
+                const importedTitle = getUniqueProjectTitle(importedProject.title || payload.currentProjectTitle || file.name.replace(/\.json$/i, ""));
+                const projects = getProjects();
+                projects[importedTitle] = {
+                    title: importedTitle,
+                    listData: normalizeListData(importedProject.listData || []),
+                    inputState: importedProject.inputState || null,
+                    time: new Date().getTime()
+                };
+
+                setProjects(projects);
+                updateProjectSelector();
+                loadProject(importedTitle);
+                alert(`已恢复项目【${importedTitle}】`);
+            } catch (err) {
+                alert("导入失败：请选择由本工具导出的JSON备份文件。");
+            } finally {
+                event.target.value = "";
+            }
+        };
+        reader.readAsText(file, "utf-8");
+    }
+
+    function validateMainInputs() {
+        const errors = [];
+        const areaText = document.getElementById('global-area').value.trim();
+        const area = Number(areaText);
+        if (!areaText || !Number.isFinite(area) || area <= 0) {
+            errors.push("展开面积必须大于 0。");
+        }
+
+        const cat = document.getElementById('global-cat').value;
+        const matId = document.getElementById('step3-mat').value;
+        const step3Checked = document.getElementById('step3-check').checked;
+
+        if (cat === 'art') {
+            const hasBillableStep = ['step1', 'step2', 'step3', 'step4', 'step5'].some(id => {
+                const chk = document.getElementById(id + '-check');
+                return chk && chk.checked && !chk.disabled;
+            });
+            if (!hasBillableStep) {
+                errors.push("至少需要勾选一个计费工序。");
+            }
+        }
+
+        if (step3Checked && matId !== 'wire_steel' && matId !== 'wire_al') {
+            const thkText = document.getElementById('step3-thk').value.trim();
+            if (thkText) {
+                const thk = Number(thkText);
+                if (!Number.isFinite(thk) || thk <= 0) {
+                    errors.push("厚度必须为大于 0 的数字；留空可使用默认厚度。");
+                }
+            }
+        }
+
+        if (step3Checked && (matId === 'wire_steel' || matId === 'wire_al')) {
+            const wire = Number(document.getElementById('step3-mesh-wire').value);
+            const holeText = document.getElementById('step3-mesh-hole').value.trim();
+            const holeMatches = holeText.match(/\d+(\.\d+)?/g);
+            if (!Number.isFinite(wire) || wire <= 0) {
+                errors.push("网材丝径必须为大于 0 的数字。");
+            }
+            if (!holeText || !holeMatches || holeMatches.length === 0) {
+                errors.push("网材孔距请填写为 50x50 或 50 这类格式。");
+            } else if (holeMatches.some(v => Number(v) <= 0)) {
+                errors.push("网材孔距必须大于 0。");
+            }
+        }
+
+        if (cat === 'art' && document.getElementById('step4-check').checked && document.getElementById('step4-finish').value === 'custom') {
+            const rate = Number(document.getElementById('step4-finish-rate').value);
+            if (!Number.isFinite(rate) || rate <= 0) {
+                errors.push("自定义表面处理系数必须为大于 0 的数字。");
+            }
+        }
+
+        return errors;
+    }
+
+    function updateValidationUI() {
+        const warnings = document.getElementById('input-warnings');
+        const btn = document.getElementById('btn-add-main');
+        if (!warnings || !btn) return;
+
+        const errors = validateMainInputs();
+        if (errors.length) {
+            warnings.innerHTML = errors.map(err => `• ${escapeHtml(err)}`).join("<br>");
+            warnings.style.display = "block";
+            btn.disabled = true;
+            btn.title = errors.join(" ");
+        } else {
+            warnings.innerHTML = "";
+            warnings.style.display = "none";
+            btn.disabled = false;
+            btn.title = "加入清单";
+        }
+    }
+
+    function updateFrameValidation() {
+        const btn = document.getElementById('btn-add-frame');
+        const lenText = document.getElementById('frame-len').value.trim();
+        const len = Number(lenText);
+        const valid = !!lenText && Number.isFinite(len) && len > 0;
+        if (btn) {
+            btn.disabled = !valid;
+            btn.title = valid ? "添加骨架" : "请输入大于 0 的骨架长度";
+        }
+    }
+
+    function openAppModal(title, bodyHtml) {
+        document.getElementById('app-modal-title').innerText = title;
+        document.getElementById('app-modal-body').innerHTML = bodyHtml;
+        document.getElementById('app-modal-backdrop').style.display = 'flex';
+    }
+
+    function closeAppModal() {
+        document.getElementById('app-modal-backdrop').style.display = 'none';
+    }
+
+    function runQualityChecks() {
+        const checks = [];
+        const title = document.getElementById('project-title').value.trim();
+        if (!listData.length) {
+            checks.push({ level:'danger', text:'清单为空，无法形成有效导出文件。' });
+        }
+        if (!title || title === '****项目') {
+            checks.push({ level:'warn', text:'项目名称仍为默认值，建议导出前改成正式项目名。' });
+        }
+
+        const partNames = {};
+        listData.forEach((item, idx) => {
+            const row = idx + 1;
+            partNames[item.part] = (partNames[item.part] || 0) + 1;
+            const isFrame = item.name === "内部骨架" || String(item.name).includes("内部骨架");
+            const area = Number(item.calcArea || 0);
+            const weight = Number(item.w || 0);
+            if (!isFrame && item.total !== "-" && (!Number.isFinite(area) || area <= 0)) {
+                checks.push({ level:'danger', text:`第 ${row} 条【${item.part}】计价面积为 0 或无效。` });
+            }
+            if (!isFrame && item.inputs?.s3 && (!Number.isFinite(weight) || weight <= 0) && item.inputs?.matId !== 'paint' && item.inputs?.matId !== 'custom_leaves') {
+                checks.push({ level:'warn', text:`第 ${row} 条【${item.part}】有成品制作，但重量为 0，请确认材质密度或厚度。` });
+            }
+            if (item.total === "-") {
+                checks.push({ level:'warn', text:`第 ${row} 条【${item.part}】为按实或无金额项，导出前请确认备注口径。` });
+            }
+            if (!item.part || item.part === "部件") {
+                checks.push({ level:'warn', text:`第 ${row} 条单体名称较泛，建议改为具体部位。` });
+            }
+        });
+
+        const repeated = Object.entries(partNames).filter(([, count]) => count > 1).map(([name]) => name);
+        if (repeated.length) {
+            checks.push({ level:'warn', text:`存在同名单体：${repeated.join('、')}。导出时会按现有规则合并序号，请确认是否符合预期。` });
+        }
+        if (!checks.length) checks.push({ level:'ok', text:'未发现明显导出风险。' });
+        return checks;
+    }
+
+    function qualityHtml() {
+        const checks = runQualityChecks();
+        return `<div class="quality-list">${checks.map(c => `<div class="quality-item ${c.level}">${escapeHtml(c.text)}</div>`).join("")}</div>`;
+    }
+
+    function openExportCenter() {
+        const body = `
+            <div style="font-weight:700; color:#334155;">导出前检查</div>
+            ${qualityHtml()}
+            <div class="export-options">
+                <div class="export-card">
+                    <h4>标准清单</h4>
+                    <p>沿用原表结构，保留合并单元格、公式和面积/价格调节列。</p>
+                    <button class="mini-btn green" onclick="runExport('standard')">导出标准清单</button>
+                </div>
+                <div class="export-card">
+                    <h4>细化清单</h4>
+                    <p>沿用原表结构，拆分造型、制模、制作、监制等分项。</p>
+                    <button class="mini-btn blue" onclick="runExport('detailed')">导出细化清单</button>
+                </div>
+                <div class="export-card">
+                    <h4>重量表</h4>
+                    <p>用于包装、物流、吊装和承重初步复核。</p>
+                    <button class="mini-btn" style="background:#0f766e;" onclick="runExport('weight')">导出重量表</button>
+                </div>
+            </div>
+        `;
+        openAppModal("导出中心", body);
+    }
+
+    function runExport(type) {
+        closeAppModal();
+        if (type === 'standard') return exportExcel();
+        if (type === 'detailed') return exportDetailedExcel();
+        if (type === 'weight') return exportWeightExcel();
+    }
+
+
+    function updateCat() {
+        const cat = document.getElementById('global-cat').value;
+        const matSel = document.getElementById('step3-mat');
+        matSel.innerHTML = "";
+        
+        if (MATERIALS[cat]) {
+            MATERIALS[cat].forEach(m => {
+                let opt = document.createElement('option');
+                opt.value = m.id; opt.text = m.n; 
+                opt.setAttribute('data-d', m.d);
+                opt.setAttribute('data-p', JSON.stringify(m.p || []));
+                matSel.add(opt);
+            });
+        }
+        if (matSel.options.length > 0) matSel.selectedIndex = 0;
+
+        const isArt = (cat === 'art');
+        document.getElementById('div-form').style.display = isArt ? 'block' : 'none';
+        document.getElementById('art-dim-row').style.display = isArt ? 'grid' : 'none';
+        document.getElementById('card-step1').style.display = isArt ? 'flex' : 'none';
+        document.getElementById('card-step2').style.display = isArt ? 'flex' : 'none';
+        document.getElementById('card-step4').style.display = isArt ? 'flex' : 'none';
+        document.getElementById('card-step5').style.display = isArt ? 'flex' : 'none';
+        document.getElementById('card-step6').style.display = isArt ? 'flex' : 'none';
+        
+        document.getElementById('div-process').style.visibility = isArt ? 'visible' : 'hidden';
+
+        updateStep3(); 
+    }
+
+    function handleFinishChange() {
+        const val = document.getElementById('step4-finish').value;
+        const container = document.getElementById('custom-finish-container');
+        if (val === 'custom') {
+            container.style.display = 'flex';
+        } else {
+            container.style.display = 'none';
+        }
+        calcAll();
+    }
+
+    function toggleStep(id) {
+        const chk = document.getElementById(id+'-check');
+        if(chk.disabled) return; 
+        
+        const el = document.getElementById('card-'+id);
+        if(!chk.checked) el.style.opacity = '0.4';
+        else el.style.opacity = '1';
+        calcAll();
+    }
+
+    function updateStep3() {
+        const cat = document.getElementById('global-cat').value;
+        const matSel = document.getElementById('step3-mat');
+        if (!matSel.options[matSel.selectedIndex]) return;
+
+        renderMaterialPicker();
+        updateMaterialPickerSelection();
+        const matId = matSel.value;
+        const procSel = document.getElementById('step3-process');
+        const pData = matSel.options[matSel.selectedIndex].getAttribute('data-p');
+        const pList = pData ? JSON.parse(pData) : [];
+        
+        procSel.innerHTML = "";
+        if(pList.length > 0) {
+            pList.forEach(p => {
+                let opt = document.createElement('option');
+                opt.value = p;
+                if(p==='forging') opt.text = "🔥 锻造";
+                else if(p==='casting') opt.text = "🏺 铸造";
+                else if(p==='other') opt.text = "⚙️ 标准";
+                else if(p==='paint_only') opt.text = "🖌️ 纯表面手工绘制"; 
+                procSel.add(opt);
+            });
+        } else {
+            let opt = document.createElement('option'); opt.text = "标准加工"; opt.value = "none"; procSel.add(opt);
+        }
+        
+        if(procSel.options.length > 0) procSel.selectedIndex = 0;
+        
+        const isMesh = (matId === 'wire_steel' || matId === 'wire_al');
+        document.getElementById('div-thk').style.display = isMesh ? 'none' : 'block';
+        document.getElementById('div-mesh-params').style.display = isMesh ? 'flex' : 'none';
+
+        const matMeta = getMaterialData(cat, matId);
+        if (cat !== 'art' && matMeta && matMeta.t) {
+            document.getElementById('step3-thk').value = matMeta.t;
+        }
+
+        applySmartDefaults();
+        calcAll();
+    }
+
+    function handleProcessChange() {
+        applySmartDefaults();
+        calcAll();
+    }
+
+    function applySmartDefaults() {
+        const cat = document.getElementById('global-cat').value;
+        if (cat !== 'art') return;
+
+        const matId = document.getElementById('step3-mat').value;
+        const proc = document.getElementById('step3-process').value;
+
+        let qData = null;
+        if(QUOTA.step3[proc] && QUOTA.step3[proc][matId]) qData = QUOTA.step3[proc][matId];
+        else if(QUOTA.step3['other'][matId]) qData = QUOTA.step3['other'][matId];
+        
+        if (qData && matId !== 'paint') {
+            if(qData.stdThk > 0) {
+                document.getElementById('step3-thk').value = qData.stdThk;
+            }
+        }
+
+        const steps = [1, 2, 3, 4, 5, 6].map(i => ({
+            chk: document.getElementById(`step${i}-check`),
+            card: document.getElementById(`card-step${i}`)
+        }));
+
+        if (matId === 'paint') {
+            steps[0].chk.checked = false;
+            steps[1].chk.checked = false;
+            steps[2].chk.checked = false;
+            steps[3].chk.checked = false;
+            steps[4].chk.checked = true;
+            steps[5].chk.checked = true;
+        } else {
+            steps[0].chk.checked = true;
+            steps[2].chk.checked = true;
+            steps[5].chk.checked = true;
+
+            const defaultNoMoldMats = ['frp', 'resin_trans', 'stone', 'wood', 'conc', 'acrylic', 'pc', 'glass', 'resin_uv', 'wire_steel', 'wire_al', 'custom_leaves'];
+            if (defaultNoMoldMats.includes(matId)) {
+                steps[1].chk.checked = false;
+            } else {
+                steps[1].chk.checked = true; 
+            }
+
+            if (proc === 'forging') {
+                steps[3].chk.checked = true;
+            } else {
+                steps[3].chk.checked = false;
+            }
+
+            if (matId === 'frp' || matId === 'conc') {
+                steps[4].chk.checked = true;
+            } else {
+                steps[4].chk.checked = false;
+            }
+        }
+    }
+
+    function get3DCoefficient(area) {
+        const table = [
+            {a: 10, c: 0.4645}, {a: 20, c: 0.4299}, {a: 30, c: 0.3968}, {a: 40, c: 0.3659},
+            {a: 50, c: 0.3375}, {a: 60, c: 0.3117}, {a: 70, c: 0.2884}, {a: 80, c: 0.2674},
+            {a: 90, c: 0.2487}, {a: 100, c: 0.2323}, {a: 200, c: 0.2200}, {a: 300, c: 0.2081},
+            {a: 400, c: 0.1965}, {a: 500, c: 0.1855}, {a: 600, c: 0.1750}, {a: 700, c: 0.1652},
+            {a: 800, c: 0.1561}, {a: 900, c: 0.1475}, {a: 1000, c: 0.1405}, {a: 2000, c: 0.1116},
+            {a: 3000, c: 0.0898}, {a: 4000, c: 0.0739}, {a: 5000, c: 0.0622}, {a: 6000, c: 0.0535},
+            {a: 7000, c: 0.0468}, {a: 8000, c: 0.0415}, {a: 9000, c: 0.0372}
+        ];
+        if (area >= 10000) return 0.0337;
+        for (let i = 0; i < table.length; i++) {
+            if (area <= table[i].a) return table[i].c;
+        }
+        return 0.4645;
+    }
+
+    function calcAll() {
+        const cat = document.getElementById('global-cat').value;
+        const rawArea = parseFloat(document.getElementById('global-area').value) || 0;
+        const area = rawArea;
+        document.getElementById('prev-calc-area').innerText = area.toFixed(2) + " m²";
+
+        const matSel = document.getElementById('step3-mat');
+        if (!matSel.options[matSel.selectedIndex]) return;
+
+        const matId = matSel.value;
+        const density = parseFloat(matSel.options[matSel.selectedIndex].getAttribute('data-d')) || 0;
+        const thkInput = parseFloat(document.getElementById('step3-thk').value); 
+        const form = document.getElementById('global-form').value;
+
+        const supLevelRate = parseFloat(document.getElementById('step6-level').value) || 1.0;
+
+        const step1Check = document.getElementById('step1-check'); const cardStep1 = document.getElementById('card-step1');
+        const step2Check = document.getElementById('step2-check'); const cardStep2 = document.getElementById('card-step2');
+        const step3Check = document.getElementById('step3-check'); const cardStep3 = document.getElementById('card-step3');
+        const step4Check = document.getElementById('step4-check'); const cardStep4 = document.getElementById('card-step4');
+        const step5Check = document.getElementById('step5-check'); const cardStep5 = document.getElementById('card-step5');
+        const step6Check = document.getElementById('step6-check'); const cardStep6 = document.getElementById('card-step6');
+
+        if (cat === 'art') {
+            if (matId === 'paint') {
+                step1Check.checked = false; step1Check.disabled = true; cardStep1.classList.add('step-disabled');
+                step2Check.checked = false; step2Check.disabled = true; cardStep2.classList.add('step-disabled');
+                step3Check.checked = false; step3Check.disabled = true; cardStep3.classList.add('step-disabled');
+                step4Check.checked = false; step4Check.disabled = true; cardStep4.classList.add('step-disabled');
+                
+                step5Check.disabled = false; cardStep5.classList.remove('step-disabled');
+                step6Check.disabled = false; cardStep6.classList.remove('step-disabled');
+            } else {
+                step1Check.disabled = false; cardStep1.classList.remove('step-disabled');
+                step3Check.disabled = false; cardStep3.classList.remove('step-disabled');
+                step4Check.disabled = false; cardStep4.classList.remove('step-disabled');
+                step5Check.disabled = false; cardStep5.classList.remove('step-disabled');
+                step6Check.disabled = false; cardStep6.classList.remove('step-disabled');
+
+                const strictlyNoMoldMats = ['frp', 'resin_trans'];
+                if (strictlyNoMoldMats.includes(matId)) {
+                    step2Check.checked = false; step2Check.disabled = true; cardStep2.classList.add('step-disabled');
+                } else {
+                    step2Check.disabled = false; cardStep2.classList.remove('step-disabled');
+                }
+            }
+            
+            cardStep1.style.opacity = step1Check.checked ? '1' : '0.4';
+            cardStep2.style.opacity = step2Check.checked ? '1' : '0.4';
+            cardStep3.style.opacity = step3Check.checked ? '1' : '0.4';
+            cardStep4.style.opacity = step4Check.checked ? '1' : '0.4';
+            cardStep5.style.opacity = step5Check.checked ? '1' : '0.4';
+            cardStep6.style.opacity = step6Check.checked ? '1' : '0.4';
+        }
+
+        let res = { w:0, c1:0, c2:0, c3:0, c4:0, c5:0, sup:0 };
+        let sup1=0, sup2=0, sup3=0, sup4=0, sup5=0;
+
+        let qData = null;
+        let stdThk = 0;
+        const proc = document.getElementById('step3-process').value;
+        
+        if(cat === 'art') {
+            if(QUOTA.step3[proc] && QUOTA.step3[proc][matId]) qData = QUOTA.step3[proc][matId];
+            else if(QUOTA.step3['other'][matId]) qData = QUOTA.step3['other'][matId];
+            if(qData) stdThk = qData.stdThk;
+        }
+
+        let calThk = (isNaN(thkInput) || thkInput === 0) ? stdThk : thkInput;
+        
+        if(document.getElementById('step3-check').checked) {
+            if (matId === 'wire_steel' || matId === 'wire_al') {
+                const wireD = parseFloat(document.getElementById('step3-mesh-wire').value) || 2;
+                const holeStr = document.getElementById('step3-mesh-hole').value || "50x50";
+                
+                const matches = holeStr.match(/\d+(\.\d+)?/g);
+                let holeW = 50, holeH = 50;
+                if (matches && matches.length >= 2) {
+                    holeW = parseFloat(matches[0]);
+                    holeH = parseFloat(matches[1]);
+                } else if (matches && matches.length === 1) {
+                    holeW = parseFloat(matches[0]);
+                    holeH = holeW; 
+                }
+                if(holeW <= 0) holeW = 50;
+                if(holeH <= 0) holeH = 50;
+                
+                const sArea = Math.PI * Math.pow(wireD / 2, 2); 
+                const lengthPerSqm = (1000 / holeW) + (1000 / holeH); 
+                const weightPerSqm = (sArea * lengthPerSqm * density) / 1000;
+                
+                res.w = weightPerSqm * area;
+            } else {
+                res.w = density * calThk * area;
+            }
+        } else {
+            res.w = 0;
+        }
+
+        if(cat === 'art' && area > 0) {
+            
+            let moldUnit = 0;
+            let productUnit = 0;
+            let finishUnit = 0;
+            let paintUnit = 0;
+
+            if(step2Check.checked && !step2Check.disabled) {
+                const type = document.getElementById('step2-type').value;
+                moldUnit = QUOTA.step2[type] ? QUOTA.step2[type][form] : 0;
+                res.c2 = moldUnit * area;
+                sup2 = res.c2 * QUOTA.supervision.mold * supLevelRate;
+            }
+
+            let sRate = (matId === 'stone' || matId === 'wood') ? 0.15 : (proc === 'casting' ? 0.07 : 0.10);
+            
+            if(document.getElementById('step3-check').checked && qData) {
+                let base = qData.base[form];
+                let delta = 0;
+                if(proc === 'forging' && qData.matPrice > 0) {
+                    if(!isNaN(thkInput) && thkInput > 0) {
+                        delta = (thkInput - qData.stdThk) * density * qData.matPrice;
+                    }
+                }
+                productUnit = base + delta; 
+                res.c3 = productUnit * area;
+                sup3 = res.c3 * sRate * supLevelRate;
+                
+                if (document.getElementById('step4-check').checked) {
+                    let finishRate = 1.0;
+                    const finishSelVal = document.getElementById('step4-finish').value;
+                    if (finishSelVal === 'custom') {
+                        finishRate = parseFloat(document.getElementById('step4-finish-rate').value) || 1.0;
+                    } else {
+                        finishRate = parseFloat(finishSelVal);
+                    }
+
+                    if (proc === 'forging') {
+                        finishUnit = productUnit * (finishRate - 1.0);
+                        res.c4 = finishUnit * area;
+                        sup4 = res.c4 * sRate * supLevelRate;
+                    }
+                }
+            }
+
+            if(document.getElementById('step5-check').checked) {
+                const lvl = document.getElementById('step5-level').value;
+                paintUnit = QUOTA.step4[lvl];
+                res.c5 = paintUnit * area;
+                sup5 = res.c5 * QUOTA.supervision.paint * supLevelRate;
+            }
+
+            if(document.getElementById('step1-check').checked) {
+                const method = document.getElementById('step1-method').value;
+                if(method === 'clay') {
+                    res.c1 = QUOTA.step1[form] * area;
+                    document.getElementById('step1-coef-display').style.display = "none";
+                } else {
+                    const directCostUnit = moldUnit + productUnit + finishUnit + paintUnit;
+                    const coef = get3DCoefficient(area);
+                    res.c1 = directCostUnit * area * coef;
+                    
+                    let coefText = coef;
+                    if (matId === 'conc') {
+                        res.c1 = res.c1 * 2;
+                        coefText = `${coef} x 2(砼规则)`;
+                    }
+                    
+                    const badge = document.getElementById('step1-coef-display');
+                    badge.innerText = `系数: ${coefText}`;
+                    badge.style.display = "inline-block";
+                }
+                sup1 = res.c1 * QUOTA.supervision.model * supLevelRate;
+            } else {
+                document.getElementById('step1-coef-display').style.display = "none";
+            }
+        }
+
+        if(document.getElementById('step6-check').checked) {
+            res.sup = sup1 + sup2 + sup3 + sup4 + sup5;
+            document.getElementById('step6-price').innerText = "¥" + Math.round(res.sup).toLocaleString();
+        } else {
+            res.sup = 0; 
+            document.getElementById('step6-price').innerText = "¥0";
+            sup1 = 0; sup2 = 0; sup3 = 0; sup4 = 0; sup5 = 0;
+        }
+        
+        function fmtRate(rate) {
+            let r = rate * 100 * supLevelRate;
+            return Number.isInteger(r) ? r + "%" : r.toFixed(1) + "%";
+        }
+        let sRateDisplay = cat==='art' ? fmtRate((matId === 'stone' || matId === 'wood') ? 0.15 : (proc === 'casting' ? 0.07 : 0.10)) : fmtRate(0.1);
+
+        document.getElementById('sup-val-1').innerText = `监制 ${fmtRate(0.25)}: ¥${Math.round(sup1).toLocaleString()}`;
+        document.getElementById('sup-val-2').innerText = `监制 ${fmtRate(0.10)}: ¥${Math.round(sup2).toLocaleString()}`;
+        document.getElementById('sup-val-3').innerText = `监制 ${sRateDisplay}: ¥${Math.round(sup3).toLocaleString()}`;
+        document.getElementById('sup-val-4').innerText = `监制 ${sRateDisplay}: ¥${Math.round(sup4).toLocaleString()}`;
+        document.getElementById('sup-val-5').innerText = `监制 ${fmtRate(0.25)}: ¥${Math.round(sup5).toLocaleString()}`;
+
+        document.getElementById('step1-price').innerText = "¥" + Math.round(res.c1).toLocaleString();
+        document.getElementById('step2-price').innerText = "¥" + Math.round(res.c2).toLocaleString();
+        document.getElementById('step3-price').innerText = "¥" + Math.round(res.c3).toLocaleString();
+        document.getElementById('step4-price').innerText = "¥" + Math.round(res.c4).toLocaleString();
+        document.getElementById('step5-price').innerText = "¥" + Math.round(res.c5).toLocaleString();
+
+        document.getElementById('prev-c1').innerText = Math.round(res.c1);
+        document.getElementById('prev-c2').innerText = Math.round(res.c2);
+        document.getElementById('prev-c3').innerText = Math.round(res.c3);
+        document.getElementById('prev-c4').innerText = Math.round(res.c4);
+        document.getElementById('prev-c5').innerText = Math.round(res.c5);
+        document.getElementById('prev-sup').innerText = Math.round(res.sup);
+        
+        document.getElementById('prev-weight').innerText = res.w.toFixed(2) + " kg";
+        const total = res.c1 + res.c2 + res.c3 + res.c4 + res.c5 + res.sup;
+        const totalDisplay = (cat === 'art') ? "¥" + Math.round(total).toLocaleString() : "实报实销";
+        document.getElementById('prev-total').innerText = totalDisplay;
+        updateValidationUI();
+        autoSave();
+    }
+
+    function renderFrameProfiles() {
+        const type = document.getElementById('frame-cat').value;
+        const sel = document.getElementById('frame-name');
+        sel.innerHTML = "";
+        FRAMES[type].forEach(f => {
+            let opt = document.createElement('option');
+            opt.value = f.w; opt.text = f.n;
+            sel.add(opt);
+        });
+        sel.selectedIndex = 0;
+        updateFrameCalc();
+    }
+    
+    function updateFrameCalc() {
+        const w = parseFloat(document.getElementById('frame-name').value) || 0;
+        const l = parseFloat(document.getElementById('frame-len').value) || 0;
+        document.getElementById('frame-w').innerText = w;
+        document.getElementById('frame-t').innerText = (w * l).toFixed(2);
+        updateFrameValidation();
+        autoSave();
+    }
+
+    // === 复位修改状态 ===
+    function resetEditState() {
+        editingIndex = -1;
+        document.getElementById('btn-add-main').innerText = "+ 加入清单";
+        document.getElementById('btn-add-main').style.backgroundColor = "";
+        document.getElementById('btn-add-frame').innerText = "+ 添加骨架";
+        document.getElementById('btn-add-frame').style.backgroundColor = "#475569";
+        document.getElementById('btn-cancel-edit-main').style.display = "none";
+        document.getElementById('btn-cancel-edit-frame').style.display = "none";
+        updateValidationUI();
+        updateFrameValidation();
+    }
+
+    function cancelEdit() {
+        resetEditState();
+        renderList();
+    }
+
+    // === Add & Edit Logic ===
+    function addToList() {
+        const validationErrors = validateMainInputs();
+        if (validationErrors.length) {
+            updateValidationUI();
+            return alert(validationErrors.join("\n"));
+        }
+        pushHistory(editingIndex !== -1 ? "修改清单项" : "加入清单");
+
+        const cat = document.getElementById('global-cat').value;
+        const part = document.getElementById('current-part').value.trim() || "部件";
+        const rawArea = parseFloat(document.getElementById('global-area').value) || 0;
+        const calcArea = document.getElementById('prev-calc-area').innerText.replace(' m²', '');
+        let displayArea = `${calcArea} m²`;
+        if (parseFloat(calcArea) === 0) displayArea = "-";
+
+        const matName = cleanMaterialLabel(document.getElementById('step3-mat').selectedOptions[0].text); 
+        const procName = document.getElementById('step3-process').options.length > 0 ? document.getElementById('step3-process').selectedOptions[0].text.replace(/^[^\s]+\s/, '') : "";
+        const matId = document.getElementById('step3-mat').value;
+        const w = parseFloat(document.getElementById('prev-weight').innerText) || 0;
+        let descList = []; 
+        let inputsBackup = null; // 用于记录修改状态
+        const artDims = getArtDimensionsFromInputs();
+
+        if(cat === 'art') {
+            inputsBackup = {
+                isFrame: false, cat: cat, part: part, area: rawArea,
+                dimL: artDims.l, dimW: artDims.w, dimH: artDims.h, dims: artDims,
+                form: document.getElementById('global-form').value,
+                matId: matId, proc: document.getElementById('step3-process').value,
+                thk: document.getElementById('step3-thk').value,
+                meshW: document.getElementById('step3-mesh-wire').value,
+                meshH: document.getElementById('step3-mesh-hole').value,
+                coop: document.getElementById('step3-coop').value,
+                base: document.getElementById('step3-base').value,
+                finish: document.getElementById('step4-finish').value,
+                finishText: document.getElementById('step4-finish-text').value,
+                finishRate: document.getElementById('step4-finish-rate').value,
+                paintLvl: document.getElementById('step5-level').value,
+                supLvl: document.getElementById('step6-level').value,
+                s1m: document.getElementById('step1-method').value,
+                s2t: document.getElementById('step2-type').value,
+                s1: document.getElementById('step1-check').checked,
+                s2: document.getElementById('step2-check').checked,
+                s3: document.getElementById('step3-check').checked,
+                s4: document.getElementById('step4-check').checked,
+                s5: document.getElementById('step5-check').checked,
+                s6: document.getElementById('step6-check').checked
+            };
+
+            let supParts = [];
+            let specsObj = {}; 
+
+            if(document.getElementById('step1-check').checked) {
+                const m = document.getElementById('step1-method').selectedOptions[0].text.replace(/^[^\s]+\s/, '');
+                const txt = TEMPLATES.step1.replace('{method}', m);
+                descList.push(txt);
+                specsObj.c1 = txt;
+                supParts.push("艺术造型");
+            }
+            
+            if(document.getElementById('step2-check').checked && !document.getElementById('step2-check').disabled) {
+                const t = document.getElementById('step2-type').selectedOptions[0].text;
+                const txt = TEMPLATES.step2.replace('{type}', t);
+                descList.push(txt);
+                specsObj.c2 = txt;
+                supParts.push("制模定样");
+            }
+            
+            let finishName = "标准处理";
+            if (document.getElementById('step4-check') && document.getElementById('step4-check').checked) {
+                const finishSelVal = document.getElementById('step4-finish').value;
+                let currentRate = 1.0;
+                
+                if (finishSelVal === 'custom') {
+                    finishName = document.getElementById('step4-finish-text').value.trim() || "自定义处理";
+                    currentRate = parseFloat(document.getElementById('step4-finish-rate').value) || 1.0;
+                } else {
+                    finishName = document.getElementById('step4-finish').selectedOptions[0].text.split(' ')[0];
+                    currentRate = parseFloat(finishSelVal);
+                }
+
+                if(currentRate > 1.0) {
+                    supParts.push("表面处理"); 
+                }
+            }
+
+            if(document.getElementById('step5-check').checked) {
+                const txt = TEMPLATES.stepPaint;
+                descList.push(txt);
+                specsObj.c5 = txt;
+                supParts.push("艺术彩绘");
+            }
+
+            if(document.getElementById('step3-check').checked) {
+                let detail = "材料切割、加工、拼合及全部辅材、损耗备品";
+                let extra = "";
+                let finalProc = procName;
+                
+                const coopStr = document.getElementById('step3-coop').value.trim() || "土建/景观专业";
+                const baseStr = document.getElementById('step3-base').value.trim() || "基础预埋件";
+
+                if (procName.includes("锻造")) {
+                    detail = "板材下料、精密锻造、焊接及全部辅材、损耗备品";
+                    finalProc = "锻造";
+                } else if (procName.includes("铸造")) {
+                    detail = "熔炼、浇铸、清砂、拼合及全部辅材、损耗备品";
+                    finalProc = "精密铸造";
+                } else if (matId === 'frp') {
+                    detail = "树脂、玻纤布、原子灰及全部辅材、损耗备品";
+                    finalProc = "手工翻制";
+                } else if (matId === 'conc') {
+                    detail = "聚合物专用砂浆、抗裂辅材、高耐候面漆";
+                    finalProc = "水泥直塑（TCP）";
+                } else if (matId === 'stone') {
+                    detail = "荒料切割、雕刻、打磨、修补及全部辅材、损耗备品";
+                    finalProc = "雕刻";
+                } else if (matId === 'wood') {
+                    detail = "原木下料、雕刻、打磨、防腐防虫及全部辅材、损耗备品";
+                    finalProc = "木雕";
+                } else if (matId === 'acrylic') {
+                    detail = "板材热弯成型、CNC切割、无缝粘接、打磨抛光及全部辅材、损耗备品";
+                    finalProc = "亚克力成型";
+                } else if (matId === 'pc') {
+                    detail = "板材冷/热弯曲成型、结构拼装紧固及全部辅材、损耗备品";
+                    finalProc = "PC板成型";
+                } else if (matId === 'glass') {
+                    detail = "玻璃切割、热熔/雕刻加工、钢化处理、结构打胶锚固及全部辅材、损耗备品";
+                    finalProc = "艺术玻璃";
+                } else if (matId === 'resin_trans') {
+                    detail = "高透树脂模具浇注、真空脱泡、打磨高光抛光及全部辅材、损耗备品";
+                    finalProc = "透明树脂浇注";
+                } else if (matId === 'resin_uv') {
+                    detail = "3D打印光固化成型、去除支撑、打磨修整及全部辅材、损耗备品";
+                    finalProc = "光敏树脂3D打印";
+                } else if (matId === 'wire_steel') {
+                    const wire = document.getElementById('step3-mesh-wire').value || "2";
+                    const hole = document.getElementById('step3-mesh-hole').value || "50x50";
+                    detail = `丝径Φ${wire}mm、孔距${hole}mm网材裁剪、锻造编织塑形、点焊/绑扎固定及全部辅材、损耗备品`;
+                    finalProc = "钢丝网锻造编织";
+                } else if (matId === 'wire_al') {
+                    const wire = document.getElementById('step3-mesh-wire').value || "2";
+                    const hole = document.getElementById('step3-mesh-hole').value || "50x50";
+                    detail = `丝径Φ${wire}mm、孔距${hole}mm网材裁剪、锻造编织塑形、绑扎固定及全部辅材、损耗备品`;
+                    finalProc = "铝丝网锻造编织";
+                } else if (matId === 'custom_leaves') {
+                    detail = "仿真枝干/树叶定制、防紫外线及阻燃处理、与主骨架穿插绑扎固定及全部辅材、损耗备品";
+                    finalProc = "仿真植物定制拼装";
+                }
+
+                const formVal = document.getElementById('global-form').value;
+                let formStr = "";
+                switch(formVal) {
+                    case 'round': formStr = '圆雕'; break;
+                    case 'high': formStr = '高浮雕'; break;
+                    case 'low': formStr = '浅浮雕'; break;
+                    case 'flat': formStr = '平浮雕'; break;
+                    case 'line': formStr = '阴阳刻线'; break;
+                }
+                finalProc = finalProc + "-" + formStr;
+
+                const txt = TEMPLATES.step3_base
+                    .replace('{proc}', finalProc)
+                    .replace('{install_coop}', coopStr)
+                    .replace('{connect_base}', baseStr)
+                    .replace(/{finish}/g, finishName)
+                    .replace('{detail}', detail)
+                    .replace('{extra}', extra);
+                
+                descList.push(txt);
+                specsObj.c3 = txt;
+                supParts.push("成品制作");
+            }
+            
+            if(document.getElementById('step6-check').checked) {
+                let partsStr = supParts.length > 0 ? supParts.join(" - ") : "全过程";
+                let dynamicSup = TEMPLATES.stepSup.replace("{parts}", partsStr);
+                descList.push(dynamicSup);
+                specsObj.sup = dynamicSup;
+            }
+
+            let c1 = parseFloat(document.getElementById('prev-c1').innerText) || 0;
+            let c2 = parseFloat(document.getElementById('prev-c2').innerText) || 0;
+            let c3 = parseFloat(document.getElementById('prev-c3').innerText) || 0;
+            let c4 = parseFloat(document.getElementById('prev-c4').innerText) || 0;
+            let c5 = parseFloat(document.getElementById('prev-c5').innerText) || 0;
+            let sup = parseFloat(document.getElementById('prev-sup').innerText) || 0;
+            let totalCost = c1 + c2 + c3 + c4 + c5 + sup;
+
+            let showName = matName + "装置";
+            if(!document.getElementById('step3-check').checked && document.getElementById('step5-check').checked) {
+                showName = "表面艺术彩绘";
+            }
+            
+            let matColText = matName;
+            const thkVal = document.getElementById('step3-thk').value;
+            if (matId === 'wire_steel' || matId === 'wire_al') {
+            } else if (thkVal && matId !== 'paint' && matId !== 'custom_leaves') {
+                matColText += ` T=${thkVal}mm`;
+            }
+
+            let newItem = {
+                part: part, name: showName, matCol: matColText, spec: descList.join('\n\n'), 
+                qty: "1 项", area: displayArea, calcArea: calcArea, dims: artDims, w: w, price: "-", total: totalCost,
+                details: { c1, c2, c3, c4, c5, sup }, specsObj: specsObj, inputs: inputsBackup
+            };
+
+            if(editingIndex !== -1) {
+                listData[editingIndex] = newItem;
+                resetEditState();
+            } else {
+                listData.push(newItem);
+            }
+
+        } else {
+            const thk = document.getElementById('step3-thk').value || 0;
+            const matMeta = getMaterialData(cat, matId);
+            const featureSpec = buildFeatureSpec(cat, matMeta);
+            const qtyVal = parseFloat(calcArea) || 0;
+            inputsBackup = { isFrame: false, cat: cat, part: part, area: rawArea, matId: matId, thk: thk };
+            let newItem = {
+                part: part, name: matName, matCol: matName + (thk>0 ? ` T=${thk}mm` : ""),
+                spec: featureSpec, qty: displayArea, qtyVal: qtyVal, unitVal: "㎡", area: displayArea,
+                calcArea: calcArea, w: w, price: "-", total: "-", details: null, specsObj: null, inputs: inputsBackup
+            };
+            if(editingIndex !== -1) { listData[editingIndex] = newItem; resetEditState(); } 
+            else { listData.push(newItem); }
+        }
+        
+        renderList();
+        autoSave();
+    }
+
+    function addFrame() {
+        const part = document.getElementById('current-part').value;
+        const name = document.getElementById('frame-cat').selectedOptions[0].text.replace(/^[^\s]+\s/, '');
+        const spec = document.getElementById('frame-name').selectedOptions[0].text;
+        const len = document.getElementById('frame-len').value;
+        const lenNum = Number(len);
+        if(!len || !Number.isFinite(lenNum) || lenNum <= 0) {
+            updateFrameValidation();
+            return alert("请输入大于 0 的骨架长度。");
+        }
+        pushHistory(editingIndex !== -1 ? "修改骨架" : "添加骨架");
+        const w = parseFloat(document.getElementById('frame-t').innerText) || 0;
+        
+        let inputsBackup = {
+            isFrame: true, part: part, type: document.getElementById('frame-cat').value,
+            spec: document.getElementById('frame-name').value, len: len
+        };
+
+        let newItem = {
+            part: part, name: "内部骨架", matCol: "Q235B",
+            spec: `【内部骨架】\n型材: ${name}\n规格: ${spec}\n材质: Q235B (防锈处理)`, 
+            qtyVal: len, unitVal: "m", area: "-", calcArea: 0, w: w, price: "-", total: "-",
+            details: null, specsObj: null, inputs: inputsBackup
+        };
+
+        if(editingIndex !== -1) {
+            listData[editingIndex] = newItem;
+            resetEditState();
+        } else {
+            listData.push(newItem);
+        }
+        renderList();
+        autoSave();
+    }
+
+    // === Edit Logic ===
+    function editItem(idx) {
+        const item = listData[idx];
+        if(!item.inputs) return alert("早期版本产生的数据不支持直接修改，请删除后重新添加。");
+        
+        editingIndex = idx;
+        
+        if (item.inputs.isFrame) {
+            document.getElementById('current-part').value = item.inputs.part;
+            document.getElementById('frame-cat').value = item.inputs.type;
+            renderFrameProfiles();
+            document.getElementById('frame-name').value = item.inputs.spec;
+            document.getElementById('frame-len').value = item.inputs.len;
+            updateFrameCalc();
+            
+            document.getElementById('btn-add-frame').innerText = "💾 提交修改";
+            document.getElementById('btn-add-frame').style.backgroundColor = "#b45309";
+            document.getElementById('btn-add-main').innerText = "+ 加入清单";
+            document.getElementById('btn-add-main').style.backgroundColor = "";
+            document.getElementById('btn-cancel-edit-main').style.display = "none";
+            document.getElementById('btn-cancel-edit-frame').style.display = "inline-block";
+        } else {
+            document.getElementById('global-cat').value = item.inputs.cat;
+            
+            // 手动重构材质下拉以避免覆盖
+            const matSel = document.getElementById('step3-mat');
+            matSel.innerHTML = "";
+            if (MATERIALS[item.inputs.cat]) {
+                MATERIALS[item.inputs.cat].forEach(m => {
+                    let opt = document.createElement('option');
+                    opt.value = m.id; opt.text = m.n; 
+                    opt.setAttribute('data-d', m.d);
+                    opt.setAttribute('data-p', JSON.stringify(m.p || []));
+                    matSel.add(opt);
+                });
+            }
+            
+            renderMaterialPicker();
+            document.getElementById('current-part').value = item.inputs.part;
+            document.getElementById('global-area').value = item.inputs.area;
+            const itemDims = item.inputs.dims || item.dims || {};
+            document.getElementById('art-dim-l').value = item.inputs.dimL ?? itemDims.l ?? "";
+            document.getElementById('art-dim-w').value = item.inputs.dimW ?? itemDims.w ?? "";
+            document.getElementById('art-dim-h').value = item.inputs.dimH ?? itemDims.h ?? "";
+            document.getElementById('global-form').value = item.inputs.form || 'round';
+            document.getElementById('step3-mat').value = item.inputs.matId;
+            
+            updateStep3(); // 联动处理工艺选项
+            
+            if(document.getElementById('step3-process').options.length > 0) {
+                document.getElementById('step3-process').value = item.inputs.proc;
+            }
+            document.getElementById('step3-thk').value = item.inputs.thk;
+            document.getElementById('step3-mesh-wire').value = item.inputs.meshW || 2;
+            document.getElementById('step3-mesh-hole').value = item.inputs.meshH || '50x50';
+            document.getElementById('step3-coop').value = item.inputs.coop || '土建/景观专业';
+            document.getElementById('step3-base').value = item.inputs.base || '基础预埋件';
+            document.getElementById('step4-finish').value = item.inputs.finish || '1.0';
+            handleFinishChange();
+            document.getElementById('step4-finish-text').value = item.inputs.finishText || '';
+            document.getElementById('step4-finish-rate').value = item.inputs.finishRate || 1.0;
+            document.getElementById('step5-level').value = item.inputs.paintLvl || 'simple';
+            document.getElementById('step6-level').value = item.inputs.supLvl || '0.9';
+            document.getElementById('step1-method').value = item.inputs.s1m || 'digital';
+            document.getElementById('step2-type').value = item.inputs.s2t || 'resin';
+            
+            // 恢复勾选状态并重置禁用的视觉效果
+            ['step1','step2','step3','step4','step5','step6'].forEach(id => {
+                const chk = document.getElementById(id+'-check');
+                chk.disabled = false; // 瞬间解禁
+                chk.checked = item.inputs[id.replace('step', 's')];
+                document.getElementById('card-'+id).style.opacity = chk.checked ? '1' : '0.4';
+            });
+            
+            calcAll(); // 用最终状态计算一次，calcAll内部会重新处理相关的禁用锁定
+            
+            document.getElementById('btn-add-main').innerText = "💾 提交修改";
+            document.getElementById('btn-add-main').style.backgroundColor = "#b45309";
+            document.getElementById('btn-add-frame').innerText = "+ 添加骨架";
+            document.getElementById('btn-add-frame').style.backgroundColor = "#475569";
+            document.getElementById('btn-cancel-edit-main').style.display = "block";
+            document.getElementById('btn-cancel-edit-frame').style.display = "none";
+        }
+    }
+
+    // === Drag & Drop Logic (With Fallback for incompatible browsers) ===
+    function moveUp(idx) {
+        if (idx <= 0) return;
+        pushHistory("上移清单项");
+        let temp = listData[idx];
+        listData[idx] = listData[idx-1];
+        listData[idx-1] = temp;
+        expandedRows.clear();
+        
+        if (editingIndex === idx) editingIndex = idx - 1;
+        else if (editingIndex === idx - 1) editingIndex = idx;
+        
+        renderList();
+        autoSave();
+    }
+
+    function moveDown(idx) {
+        if (idx >= listData.length - 1) return;
+        pushHistory("下移清单项");
+        let temp = listData[idx];
+        listData[idx] = listData[idx+1];
+        listData[idx+1] = temp;
+        expandedRows.clear();
+        
+        if (editingIndex === idx) editingIndex = idx + 1;
+        else if (editingIndex === idx + 1) editingIndex = idx;
+        
+        renderList();
+        autoSave();
+    }
+
+    function handleDragStart(e, idx) {
+        draggedItemIndex = idx;
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", idx); 
+        setTimeout(() => { e.target.style.opacity = '0.5'; }, 0);
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault(); 
+        e.dataTransfer.dropEffect = "move";
+    }
+
+    function handleDragEnter(e) {
+        e.preventDefault();
+        const tr = e.target.closest('tr');
+        if(tr) tr.classList.add('drag-over');
+    }
+
+    function handleDragLeave(e) {
+        const tr = e.target.closest('tr');
+        if(tr) tr.classList.remove('drag-over');
+    }
+
+    function handleDrop(e, targetIdx) {
+        e.preventDefault();
+        const tr = e.target.closest('tr');
+        if(tr) tr.classList.remove('drag-over');
+        
+        if (draggedItemIndex === -1 || draggedItemIndex === targetIdx) return;
+
+        pushHistory("拖拽排序");
+        const draggedItem = listData.splice(draggedItemIndex, 1)[0];
+        listData.splice(targetIdx, 0, draggedItem);
+        expandedRows.clear();
+
+        if (editingIndex === draggedItemIndex) {
+            editingIndex = targetIdx;
+        } else if (editingIndex !== -1) {
+            if (draggedItemIndex < editingIndex && targetIdx >= editingIndex) {
+                editingIndex--;
+            } else if (draggedItemIndex > editingIndex && targetIdx <= editingIndex) {
+                editingIndex++;
+            }
+        }
+
+        draggedItemIndex = -1;
+        renderList();
+        autoSave();
+    }
+
+    function handleDragEnd(e) {
+        e.target.style.opacity = '1';
+        draggedItemIndex = -1;
+        document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    }
+
+    function renderList() {
+        listData = normalizeListData(listData);
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = "";
+        let grandC = 0;
+        let grandW = 0;
+        
+        listData.forEach((item, idx) => {
+            if(item.total !== "-" && !isNaN(item.total)) grandC += item.total;
+            if(item.w !== "-" && !isNaN(Number(item.w))) grandW += Number(item.w);
+
+            let totalDisplay = (item.total !== "-" && item.total > 0) ? Math.round(item.total).toLocaleString() : "-";
+            let qtyDisplay = item.qtyVal ? (item.qtyVal + item.unitVal) : item.qty;
+            let trBg = (idx === editingIndex) ? "background-color: #fef3c7;" : "";
+            const safePart = escapeHtml(item.part);
+            const safeName = escapeHtml(item.name);
+            const safeQty = escapeHtml(qtyDisplay);
+            const safeArea = escapeHtml(item.area);
+
+            tbody.innerHTML += `
+                <tr class="draggable-row" style="${trBg}" draggable="true" 
+                    ondragstart="handleDragStart(event, ${idx})" 
+                    ondragover="handleDragOver(event)" 
+                    ondragenter="handleDragEnter(event)"
+                    ondragleave="handleDragLeave(event)"
+                    ondrop="handleDrop(event, ${idx})" 
+                    ondragend="handleDragEnd(event)">
+                    <td>
+                        <span class="drag-handle" title="按住拖拽进行排序">☰</span>
+                        <div style="font-weight:bold; color:#1e293b; font-size:1.05em; display:inline-block; vertical-align:middle;">【${safePart}】</div>
+                        <div style="color:#64748b; font-size:0.85em; margin-top:3px; margin-left:26px;">${safeName}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight:bold; color:#334155;">${safeQty}</div>
+                        ${item.area && item.area !== '-' ? `<div style="color:#64748b; font-size:0.8em; margin-top:2px;">计价面积: ${safeArea}</div>` : ''}
+                    </td>
+                    <td style="color:#b91c1c; font-weight:bold; font-size:1.1em; vertical-align:middle;">${totalDisplay !== "-" ? "¥" + totalDisplay : "-"}</td>
+                    <td style="vertical-align:middle; white-space:nowrap;">
+                        <button class="action-btn btn-move" onclick="moveUp(${idx})" title="向上移动一层">↑</button>
+                        <button class="action-btn btn-move" onclick="moveDown(${idx})" title="向下移动一层">↓</button>
+                        <button class="action-btn" onclick="toggleItemDetail(${idx})" title="展开计算明细">明细</button>
+                        <button class="action-btn btn-copy" onclick="duplicateItem(${idx})" title="复制此条">⧉</button>
+                        <button class="action-btn btn-edit" onclick="editItem(${idx})" title="修改原参数">✏️</button>
+                        <button class="action-btn btn-del" onclick="delItem(${idx})" title="删除">×</button>
+                    </td>
+                </tr>
+            `;
+            if (expandedRows.has(idx)) {
+                tbody.innerHTML += `<tr class="detail-row"><td colspan="4">${buildDetailHtml(item)}</td></tr>`;
+            }
+        });
+        document.getElementById('final-cost').innerText = "¥" + Math.round(grandC).toLocaleString();
+        document.getElementById('final-weight').innerText = grandW.toFixed(2);
+    }
+
+    function delItem(idx) {
+        const item = listData[idx];
+        if(!confirm(`确定删除【${item.part} - ${item.name}】吗？`)) return;
+        pushHistory("删除清单项");
+        if(idx === editingIndex) resetEditState();
+        listData.splice(idx, 1);
+        expandedRows.clear();
+        renderList();
+        autoSave();
+    }
+
+    function duplicateItem(idx) {
+        pushHistory("复制清单项");
+        const cloned = JSON.parse(JSON.stringify(listData[idx]));
+        listData.splice(idx + 1, 0, cloned);
+        if (editingIndex > idx) editingIndex++;
+        expandedRows.clear();
+        renderList();
+        autoSave();
+    }
+
+    function getItemSubItems(item) {
+        const isFrame = item.name === "内部骨架" || String(item.name).includes("内部骨架");
+        if (!item.details) {
+            return [{ name: item.name, spec: item.spec, cost: item.total, weight: item.w, qty: item.qtyVal || 1, unit: item.unitVal || "项" }];
+        }
+        const d = item.details;
+        const s = item.specsObj || {};
+        const areaNum = Math.max(Number(item.calcArea) || 1, 1);
+        const subItems = [];
+        if (s.c1) subItems.push({ name: "艺术造型", spec: s.c1, cost: d.c1, qty: areaNum, unit: "㎡" });
+        if (s.c2) subItems.push({ name: "制模定样", spec: s.c2, cost: d.c2, qty: areaNum, unit: "㎡" });
+        if (s.c5) subItems.push({ name: "艺术彩绘", spec: s.c5, cost: d.c5, qty: areaNum, unit: "㎡" });
+        if (s.c3) subItems.push({ name: "成品制作", spec: s.c3, cost: (d.c3 || 0) + (d.c4 || 0), qty: areaNum, unit: "㎡", weight: item.w });
+        if (s.sup) subItems.push({ name: "艺术监制", spec: s.sup, cost: d.sup, qty: 1, unit: "项" });
+        if (isFrame && !subItems.length) subItems.push({ name: "内部骨架", spec: item.spec, cost: item.total, weight: item.w, qty: item.qtyVal || 0, unit: item.unitVal || "m" });
+        return subItems;
+    }
+
+    function getWeightBasisText(item) {
+        const isFrame = item.name === "内部骨架" || String(item.name).includes("内部骨架");
+        if (isFrame) {
+            return `重量口径：型材理论米重 × 长度 = ${Number(item.w || 0).toFixed(2)} kg`;
+        }
+        if (!item.inputs) {
+            return `重量口径：历史数据，按已保存重量 ${Number(item.w || 0).toFixed(2)} kg`;
+        }
+        if (item.inputs.matId === 'paint') {
+            return "重量口径：表面附着涂装层忽略自重";
+        }
+        if (item.inputs.matId === 'custom_leaves') {
+            return "重量口径：仿真树叶未设置标准密度，需按供应商实物或样品另行复核";
+        }
+        if (item.inputs.matId === 'wire_steel' || item.inputs.matId === 'wire_al') {
+            return `重量口径：丝径Φ${item.inputs.meshW || 2}mm、孔距${item.inputs.meshH || '50x50'}mm，按双向网格理论重量 × 参考面积估算`;
+        }
+        const matMeta = getMaterialData(item.inputs.cat, item.inputs.matId);
+        const thk = item.inputs.thk || "默认";
+        const densityText = matMeta && Number(matMeta.d) > 0 ? `密度${matMeta.d}` : "材料密度";
+        return `重量口径：${densityText} × 厚度${thk}mm × 参考面积${item.calcArea || 0}m²`;
+    }
+
+    function toggleItemDetail(idx) {
+        if (expandedRows.has(idx)) expandedRows.delete(idx);
+        else expandedRows.add(idx);
+        renderList();
+    }
+
+    function buildDetailHtml(item) {
+        const subItems = getItemSubItems(item);
+        const detailRows = subItems.map(sub => {
+            const cost = sub.cost !== "-" && Number.isFinite(Number(sub.cost)) ? `¥${Math.round(Number(sub.cost)).toLocaleString()}` : "-";
+            const qty = `${sub.qty ?? "-"} ${sub.unit || ""}`;
+            const unitPrice = Number(sub.qty) > 0 && Number(sub.cost) > 0 ? `¥${Math.round(Number(sub.cost) / Number(sub.qty)).toLocaleString()}/${sub.unit || "项"}` : "-";
+            return `
+                <div class="detail-chip">
+                    <span>${escapeHtml(sub.name)}</span>
+                    <strong>${cost}</strong>
+                    <div style="font-size:0.72rem; color:#64748b; margin-top:3px;">${escapeHtml(qty)}｜${unitPrice}</div>
+                </div>
+            `;
+        }).join("");
+        const formula = [
+            `材质/工艺：${item.matCol || "-"}`,
+            `参考面积：${item.calcArea || "-"} m²`,
+            `预估重量：${Number(item.w || 0).toFixed(2)} kg`,
+            getWeightBasisText(item),
+            `分项：${subItems.map(sub => `${sub.name} ${sub.cost !== "-" ? Math.round(Number(sub.cost || 0)) : "-"}`).join(" / ")}`
+        ].join("\n");
+        return `<div class="detail-box"><div class="detail-grid">${detailRows}</div><div class="detail-formula">${escapeHtml(formula)}</div></div>`;
+    }
+
+    function exportExcel() {
+        if(listData.length === 0) return alert("清单为空");
+        if(!ensureXlsxReady()) return;
+        
+        const wb = XLSX.utils.book_new();
+        const headerS = { font:{bold:true, color:{rgb:"FFFFFF"}}, fill:{fgColor:{rgb:"0369a1"}}, alignment:{horizontal:"center", vertical:"center"}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const cellS = { alignment:{vertical:"center", wrapText:true}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const redCellS = { font:{color:{rgb:"FF0000"}}, alignment:{vertical:"center", horizontal:"center", wrapText:true}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        
+        const noteS = { alignment:{vertical:"top", horizontal:"left", wrapText:true}, font:{color:{rgb:"475569"}, sz:10}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const labelS = { font:{bold:true, color:{rgb:"b45309"}, sz: 9}, alignment:{horizontal:"right", vertical:"center", wrapText:true} };
+        const valS = { font:{bold:true, color:{rgb:"FF0000"}}, fill:{fgColor:{rgb:"FEF08A"}}, alignment:{horizontal:"center", vertical:"center"}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const alertS = { font:{bold:true, color:{rgb:"475569"}, sz: 9}, alignment:{horizontal:"left", vertical:"center", wrapText:true} };
+
+        const noteText = "1、雕塑相关基础、基座、雕塑灯光系统、土石方、混凝土结构、内置钢结构、石材干挂、脚手架、吊装机械台班等项目费用均未包含在本内，\n2、仅包含了人工费、材料费、机械费、综合费；而安全文明施工费、企业规费、增值税金均未包含。";
+
+        const today = new Date();
+        const todayStr = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,'0') + "-" + String(today.getDate()).padStart(2,'0');
+        const projectTitle = document.getElementById('project-title').value || "****项目";
+        const titleStr = `${todayStr}-${projectTitle}雕塑包装专业（成本估算清单）-`;
+
+        let wsData = [
+            [{ v: titleStr, s: { font:{bold:true, sz:16}, alignment:{horizontal:"center", vertical:"center"} } }]
+        ];
+        
+        const headers = ["节点", "序号", "名称", "图示", "尺寸(m)", "材质", "项目特征描述", "工程量", "单位", "预估单价(元)", "预估总价(元)", "备注", "参考面积(m²)"];
+        let headerRow = headers.map(h => ({ v: h, s: headerS }));
+        
+        headerRow[13] = { v: "整体面积调节 👉", s: labelS }; 
+        headerRow[14] = { v: 1, t: 'n', z: '0%', s: valS }; 
+        headerRow[15] = { v: "整体价格调节 👉", s: labelS }; 
+        headerRow[16] = { v: 1, t: 'n', z: '0%', s: valS }; 
+        headerRow[17] = { v: "(⚠️外发前：全选数值区域复制粘贴为数值 -> 删除 N~R 列及参考面积列)", s: alertS };
+        
+        wsData.push(headerRow);
+
+        let merges = [];
+        merges.push({ s: {r:0, c:0}, e: {r:0, c:12} });
+
+        let lastPart = null;
+        let groupIndex = 0;
+        let currentRowIndex = 2; 
+
+        let groupStartMap = {};
+        let groupEndMap = {};
+
+        for (let i = 0; i < listData.length; i++) {
+            let item = listData[i];
+            const isFrame = item.name === "内部骨架" || item.name.includes("内部骨架");
+            
+            if (!isFrame) {
+                groupIndex++;
+            } else if (item.part !== lastPart || groupIndex === 0) {
+                groupIndex++;
+            }
+            lastPart = item.part;
+            
+            let displayName = item.part;
+            if (isFrame) {
+                displayName = item.part + "\n（内部骨架）";
+            }
+
+            let areaNum = parseFloat(item.calcArea) || 1;
+            if (areaNum === 0) areaNum = 1;
+
+            let unitPrice = item.total !== "-" ? Math.round(item.total) : "-";
+            let costVal = item.total !== "-" ? Math.round(item.total) : 0;
+            
+            let qVal = item.qtyVal ? item.qtyVal : 1;
+            let uVal = item.unitVal ? item.unitVal : "项"; 
+
+            let dCol = { v: "(请插入图示)", s: redCellS };
+            let eCol = buildDimensionCell(item, cellS, redCellS);
+            
+            if (isFrame && item.w !== "-") {
+                dCol = { v: "", s: cellS };
+                qVal = parseFloat((parseFloat(item.w) / 1000).toFixed(3)); 
+                uVal = "t";
+                unitPrice = qVal > 0 && costVal !== 0 ? Math.round(costVal / qVal) : "-";
+            }
+
+            let excelRow = currentRowIndex + 1;
+            
+            let qtyCol = { v: qVal, s: cellS };
+            if (typeof qVal === 'number' && uVal !== "项") {
+                qtyCol = { f: `ROUND(${qVal}*$O$2, 3)`, t: 'n', s: cellS };
+            }
+
+            let unitPriceCol = { v: unitPrice, s: cellS };
+            if (typeof unitPrice === 'number') {
+                if (uVal === "项") {
+                    unitPriceCol = { f: `ROUND(${unitPrice}*$O$2*$Q$2, 0)`, t: 'n', s: { ...cellS } };
+                } else {
+                    unitPriceCol = { f: `ROUND(${unitPrice}*$Q$2, 0)`, t: 'n', s: { ...cellS } };
+                }
+            }
+
+            let remarkCol = { v: "", s: cellS };
+            
+            let areaVal = (item.calcArea && item.calcArea > 0) ? parseFloat(item.calcArea) : "-";
+            let areaCol = { v: areaVal, s: cellS };
+            if (typeof areaVal === 'number') {
+                areaCol = { f: `ROUND(${areaVal}*$O$2, 2)`, t: 'n', s: cellS };
+            }
+
+            wsData.push([
+                { v: "", s: cellS }, 
+                { v: groupIndex, s: { alignment:{horizontal:"center", vertical:"center"}, ...cellS} }, 
+                { v: displayName, s: cellS }, 
+                dCol, 
+                eCol, 
+                { v: item.matCol, s: cellS }, 
+                { v: item.spec, s: cellS }, 
+                qtyCol, 
+                { v: uVal, s: cellS }, 
+                unitPriceCol, 
+                { f: `H${excelRow}*J${excelRow}`, t: 'n', v: costVal, s: cellS }, 
+                remarkCol,
+                areaCol
+            ]);
+
+            if (groupStartMap[groupIndex] === undefined) {
+                groupStartMap[groupIndex] = currentRowIndex;
+            }
+            groupEndMap[groupIndex] = currentRowIndex;
+
+            currentRowIndex++;
+        }
+
+        for (let gi in groupStartMap) {
+            let start = groupStartMap[gi];
+            let end = groupEndMap[gi];
+            if (end > start) {
+                merges.push({ s: { r: start, c: 0 }, e: { r: end, c: 0 } });
+                merges.push({ s: { r: start, c: 1 }, e: { r: end, c: 1 } });
+            }
+        }
+
+        let totalRow = new Array(13).fill({ v: "", s: headerS });
+        merges.push({ s: {r: currentRowIndex, c: 0}, e: {r: currentRowIndex, c: 9} }); 
+        totalRow[0] = { v: "预估总价汇总(元)：", s: { font:{bold:true, color:{rgb:"FFFFFF"}}, alignment:{horizontal:"right", vertical:"center"}, fill:{fgColor:{rgb:"0369a1"}}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} } };
+        
+        totalRow[10] = { f: `SUM(K3:K${currentRowIndex})`, t: 'n', z: '"¥"#,##0', s: { ...headerS } }; 
+        totalRow[11] = { v: "-", s: headerS };
+        totalRow[12] = { v: "-", s: headerS };
+        wsData.push(totalRow);
+
+        let noteRow = new Array(13).fill({ v: "", s: noteS });
+        noteRow[0] = { v: noteText, s: noteS };
+        wsData.push(noteRow);
+        merges.push({ s: {r: currentRowIndex + 1, c: 0}, e: {r: currentRowIndex + 1, c: 12} });
+
+        const ws = XLSX.utils.aoa_to_sheet([]);
+        XLSX.utils.sheet_add_aoa(ws, wsData, { origin: "A1" });
+        
+        ws['!merges'] = merges;
+        ws['!cols'] = [
+            {wch:6}, {wch:6}, {wch:18}, {wch:15}, {wch:12}, {wch:20}, 
+            {wch:60}, {wch:8}, {wch:6}, {wch:12}, {wch:15}, {wch:18},
+            {wch:12}, {wch:16}, {wch:8}, {wch:16}, {wch:8}, {wch:35}
+        ];
+        
+        ws['!rows'] = [{hpt: 30}, {hpt: 35}];
+        ws['!rows'][currentRowIndex + 1] = { hpt: 60 };
+
+        XLSX.utils.book_append_sheet(wb, ws, "雕塑包装专业");
+        XLSX.writeFile(wb, titleStr + ".xlsx");
+    }
+
+    function exportDetailedExcel() {
+        if(listData.length === 0) return alert("清单为空");
+        if(!ensureXlsxReady()) return;
+        
+        const wb = XLSX.utils.book_new();
+        const headerS = { font:{bold:true, color:{rgb:"FFFFFF"}}, fill:{fgColor:{rgb:"0369a1"}}, alignment:{horizontal:"center", vertical:"center"}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const cellS = { alignment:{vertical:"center", wrapText:true}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const redCellS = { font:{color:{rgb:"FF0000"}}, alignment:{vertical:"center", horizontal:"center", wrapText:true}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        
+        const noteS = { alignment:{vertical:"top", horizontal:"left", wrapText:true}, font:{color:{rgb:"475569"}, sz:10}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const labelS = { font:{bold:true, color:{rgb:"b45309"}, sz: 9}, alignment:{horizontal:"right", vertical:"center", wrapText:true} };
+        const valS = { font:{bold:true, color:{rgb:"FF0000"}}, fill:{fgColor:{rgb:"FEF08A"}}, alignment:{horizontal:"center", vertical:"center"}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const alertS = { font:{bold:true, color:{rgb:"475569"}, sz: 9}, alignment:{horizontal:"left", vertical:"center", wrapText:true} };
+
+        const noteText = "1、雕塑相关基础、基座、雕塑灯光系统、土石方、混凝土结构、内置钢结构、石材干挂、脚手架、吊装机械台班等项目费用均未包含在本内，\n2、仅包含了人工费、材料费、机械费、综合费；而安全文明施工费、企业规费、增值税金均未包含。";
+
+        const today = new Date();
+        const todayStr = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,'0') + "-" + String(today.getDate()).padStart(2,'0');
+        const projectTitle = document.getElementById('project-title').value || "****项目";
+        const titleStr = `${todayStr}-${projectTitle}雕塑包装专业（成本估算清单）`;
+
+        let wsData = [
+            [{ v: titleStr, s: { font:{bold:true, sz:16}, alignment:{horizontal:"center", vertical:"center"} } }]
+        ];
+        
+        const headers = ["节点", "序号", "名称", "图示", "尺寸(m)", "材质", "分项名称", "项目特征描述", "工程量", "单位", "预估单价(元)", "预估总价(元)", "单项总价(元)", "备注"];
+        let headerRow = headers.map(h => ({ v: h, s: headerS }));
+
+        headerRow[14] = { v: "整体面积调节 👉", s: labelS }; 
+        headerRow[15] = { v: 1, t: 'n', z: '0%', s: valS }; 
+        headerRow[16] = { v: "整体价格调节 👉", s: labelS }; 
+        headerRow[17] = { v: 1, t: 'n', z: '0%', s: valS }; 
+        headerRow[18] = { v: "(⚠️外发前：全选数值区域复制粘贴为数值 -> 删除 O~S 列)", s: alertS };
+        
+        wsData.push(headerRow);
+
+        let merges = [];
+        merges.push({ s: {r:0, c:0}, e: {r:0, c:13} }); 
+
+        let lastPart = null;
+        let groupIndex = 0;
+        let currentRowIndex = 2; 
+
+        let groupStartMap = {};
+        let groupEndMap = {};
+
+        for (let i = 0; i < listData.length; i++) {
+            let item = listData[i];
+            const isFrame = item.name === "内部骨架" || item.name.includes("内部骨架");
+            
+            if (!isFrame) {
+                groupIndex++;
+            } else if (item.part !== lastPart || groupIndex === 0) {
+                groupIndex++;
+            }
+            lastPart = item.part;
+            
+            let displayName = item.part;
+            if (isFrame) {
+                displayName = item.part + "\n（内部骨架）";
+            }
+
+            let areaNum = parseFloat(item.calcArea) || 1;
+            if (areaNum === 0) areaNum = 1;
+
+            let subItems = [];
+            if (item.details) {
+                const d = item.details;
+                const s = item.specsObj;
+                
+                if (s.c1) subItems.push({ name: "艺术造型", spec: s.c1, cost: d.c1, showW: false });
+                if (s.c2) subItems.push({ name: "制模定样", spec: s.c2, cost: d.c2, showW: false });
+                if (s.c5) subItems.push({ name: "艺术彩绘", spec: s.c5, cost: d.c5, showW: false });
+                if (s.c3) subItems.push({ name: "成品制作", spec: s.c3, cost: d.c3 + d.c4, showW: true }); 
+                if (s.sup) subItems.push({ name: "艺术监制", spec: s.sup, cost: d.sup, showW: false });
+            } else {
+                subItems.push({ name: item.name, spec: item.spec, cost: item.total, showW: true });
+            }
+
+            const startRow = currentRowIndex;
+            const endRow = currentRowIndex + subItems.length - 1;
+
+            if (subItems.length > 1) {
+                for (let col = 2; col <= 5; col++) {
+                    merges.push({ s: {r: startRow, c: col}, e: {r: endRow, c: col} });
+                }
+                merges.push({ s: {r: startRow, c: 12}, e: {r: endRow, c: 12} });
+            }
+
+            let dCol = { v: "(请插入图示)", s: redCellS };
+            let eCol = buildDimensionCell(item, cellS, redCellS);
+            
+            if (isFrame) {
+                dCol = { v: "", s: cellS };
+            }
+
+            subItems.forEach((sub, idx) => {
+                let costVal = sub.cost !== "-" ? Math.round(sub.cost) : 0;
+                let excelRow = currentRowIndex + 1; 
+                
+                let subQty = 1;
+                let subUnit = "项";
+                let subUnitCost = costVal;
+
+                if (item.details) {
+                    if (["艺术造型", "制模定样", "艺术彩绘", "成品制作"].includes(sub.name)) {
+                        subQty = areaNum;
+                        subUnit = "㎡";
+                        subUnitCost = areaNum > 0 ? Math.round(costVal / areaNum) : 0;
+                    } else if (sub.name === "艺术监制") {
+                        subQty = 1;
+                        subUnit = "项";
+                        subUnitCost = costVal; 
+                    }
+                } else {
+                    if (isFrame && item.w !== "-") {
+                        subQty = parseFloat((parseFloat(item.w) / 1000).toFixed(3)); 
+                        subUnit = "t";
+                        subUnitCost = subQty > 0 && costVal !== 0 ? Math.round(costVal / subQty) : costVal;
+                    } else {
+                        subQty = item.qtyVal ? item.qtyVal : 1;
+                        subUnit = item.unitVal ? item.unitVal : "项";
+                        subUnitCost = subQty > 0 && costVal !== 0 ? Math.round(costVal / subQty) : costVal;
+                    }
+                }
+
+                let qtyCol = { v: subQty, s: cellS };
+                if (typeof subQty === 'number' && subUnit !== "项") {
+                    qtyCol = { f: `ROUND(${subQty}*$P$2, 3)`, t: 'n', s: cellS };
+                }
+
+                let unitPriceCol = { v: subUnitCost, s: cellS };
+                if (typeof subUnitCost === 'number') {
+                    if (subUnit === "项") {
+                        unitPriceCol = { f: `ROUND(${subUnitCost}*$P$2*$R$2, 0)`, t: 'n', s: { ...cellS } };
+                    } else {
+                        unitPriceCol = { f: `ROUND(${subUnitCost}*$R$2, 0)`, t: 'n', s: { ...cellS } };
+                    }
+                }
+
+                let remarkCol = { v: "", s: cellS };
+
+                let itemTotalCol = { v: "", s: cellS };
+                if (idx === 0) {
+                    itemTotalCol = { f: `SUM(L${startRow + 1}:L${endRow + 1})`, t: 'n', s: { font:{bold:true, color:{rgb:"b91c1c"}}, ...cellS } };
+                }
+
+                let rowData = [
+                    { v: "", s: cellS }, 
+                    { v: groupIndex, s: { alignment:{horizontal:"center", vertical:"center"}, ...cellS} }, 
+                    { v: displayName, s: cellS }, 
+                    dCol, 
+                    eCol, 
+                    { v: item.matCol, s: cellS }, 
+                    { v: sub.name, s: cellS }, 
+                    { v: sub.spec || "", s: cellS }, 
+                    qtyCol, 
+                    { v: subUnit, s: cellS }, 
+                    unitPriceCol, 
+                    { f: `I${excelRow}*K${excelRow}`, t: 'n', v: costVal, s: cellS }, 
+                    itemTotalCol, 
+                    remarkCol 
+                ];
+
+                wsData.push(rowData);
+                
+                if (groupStartMap[groupIndex] === undefined) {
+                    groupStartMap[groupIndex] = currentRowIndex;
+                }
+                groupEndMap[groupIndex] = currentRowIndex;
+
+                currentRowIndex++;
+            });
+        }
+
+        for (let gi in groupStartMap) {
+            let start = groupStartMap[gi];
+            let end = groupEndMap[gi];
+            if (end > start) {
+                merges.push({ s: { r: start, c: 0 }, e: { r: end, c: 0 } });
+                merges.push({ s: { r: start, c: 1 }, e: { r: end, c: 1 } });
+            }
+        }
+
+        let totalRow = new Array(14).fill({ v: "", s: headerS });
+        merges.push({ s: {r: currentRowIndex, c: 0}, e: {r: currentRowIndex, c: 10} }); 
+        totalRow[0] = { v: "预估总价汇总(元)：", s: { font:{bold:true, color:{rgb:"FFFFFF"}}, alignment:{horizontal:"right", vertical:"center"}, fill:{fgColor:{rgb:"0369a1"}}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} } };
+        
+        totalRow[11] = { f: `SUM(L3:L${currentRowIndex})`, t: 'n', z: '"¥"#,##0', s: { ...headerS } }; 
+        totalRow[12] = { v: "-", s: headerS }; 
+        totalRow[13] = { v: "-", s: headerS };
+        wsData.push(totalRow);
+
+        let noteRow = new Array(14).fill({ v: "", s: noteS });
+        noteRow[0] = { v: noteText, s: noteS };
+        wsData.push(noteRow);
+        merges.push({ s: {r: currentRowIndex + 1, c: 0}, e: {r: currentRowIndex + 1, c: 13} });
+
+        const ws = XLSX.utils.aoa_to_sheet([]);
+        XLSX.utils.sheet_add_aoa(ws, wsData, { origin: "A1" });
+        
+        ws['!merges'] = merges;
+        ws['!cols'] = [
+            {wch:6}, {wch:6}, {wch:18}, {wch:15}, {wch:12}, {wch:20}, 
+            {wch:15}, {wch:55}, {wch:8}, {wch:6}, {wch:12}, {wch:15}, {wch:15}, {wch:18},
+            {wch:16}, {wch:8}, {wch:16}, {wch:8}, {wch:35}
+        ];
+
+        ws['!rows'] = [{hpt: 30}, {hpt: 35}]; 
+        ws['!rows'][currentRowIndex + 1] = { hpt: 60 };
+
+        XLSX.utils.book_append_sheet(wb, ws, "雕塑包装专业");
+        XLSX.writeFile(wb, titleStr + ".xlsx");
+    }
+
+    function exportWeightExcel() {
+        if(listData.length === 0) return alert("清单为空");
+        if(!ensureXlsxReady()) return;
+        
+        const wb = XLSX.utils.book_new();
+        const headerS = { font:{bold:true, color:{rgb:"FFFFFF"}}, fill:{fgColor:{rgb:"0f766e"}}, alignment:{horizontal:"center", vertical:"center"}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const cellS = { alignment:{vertical:"center", wrapText:true}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const redCellS = { font:{color:{rgb:"FF0000"}}, alignment:{vertical:"center", horizontal:"center", wrapText:true}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        
+        const noteS = { alignment:{vertical:"top", horizontal:"left", wrapText:true}, font:{color:{rgb:"475569"}, sz:10}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} };
+        const noteText = "1、本估算表为纯材料与工艺的预估物理重量清单，不涉及商务造价信息。\n2、表内重量数据仅供包装、物流运输、现场吊装机械选型、以及基座承重结构配重参考。\n3、受手工打造过程损耗与工艺厚度公差影响，实际重量请以加工完成后的实际过磅或体积密度测算为准。";
+
+        const today = new Date();
+        const todayStr = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,'0') + "-" + String(today.getDate()).padStart(2,'0');
+        const projectTitle = document.getElementById('project-title').value || "****项目";
+        const titleStr = `${todayStr}-${projectTitle}雕塑包装专业（重量估算表）`;
+
+        let wsData = [
+            [{ v: titleStr, s: { font:{bold:true, sz:16}, alignment:{horizontal:"center", vertical:"center"} } }]
+        ];
+        
+        const headers = ["节点", "序号", "名称", "图示", "尺寸(m)", "材质", "物理特征描述", "工程量", "单位", "参考面积(m²)", "预估重量(kg)", "备注"];
+        let headerRow = headers.map(h => ({ v: h, s: headerS }));
+        
+        wsData.push(headerRow);
+
+        let merges = [];
+        merges.push({ s: {r:0, c:0}, e: {r:0, c:11} });
+
+        let lastPart = null;
+        let groupIndex = 0;
+        let currentRowIndex = 1; 
+
+        let groupStartMap = {};
+        let groupEndMap = {};
+
+        for (let i = 0; i < listData.length; i++) {
+            let item = listData[i];
+            const isFrame = item.name === "内部骨架" || item.name.includes("内部骨架");
+            
+            if (!isFrame) {
+                groupIndex++;
+            } else if (item.part !== lastPart || groupIndex === 0) {
+                groupIndex++;
+            }
+            lastPart = item.part;
+            
+            let displayName = item.part;
+            if (isFrame) {
+                displayName = item.part + "\n（内部骨架）";
+            }
+
+            let qVal = item.qtyVal ? item.qtyVal : 1;
+            let uVal = item.unitVal ? item.unitVal : "项"; 
+
+            let dCol = { v: "(请插入图示)", s: redCellS };
+            let eCol = buildDimensionCell(item, cellS, redCellS);
+            
+            if (isFrame && item.w !== "-") {
+                dCol = { v: "", s: cellS };
+                qVal = parseFloat((parseFloat(item.w) / 1000).toFixed(3)); 
+                uVal = "t";
+            }
+
+            let areaVal = (item.calcArea && item.calcArea > 0) ? parseFloat(item.calcArea) : "-";
+            let areaCol = { v: areaVal, s: cellS };
+            if (typeof areaVal === 'number') {
+                areaCol.t = 'n';
+            }
+
+            let wCol = { v: "-", s: cellS };
+            if (item.w !== "-" && Number(item.w) > 0) {
+                wCol = { v: Number(Number(item.w).toFixed(2)), t: 'n', z: '"重约"0.00"kg"', s: { ...cellS } };
+            }
+
+            let remarkCol = { v: "", s: cellS };
+
+            // 专为重量表格生成简化的物理特征描述
+            let weightSpec = item.spec; 
+            if (!isFrame && item.inputs && item.inputs.cat === 'art') {
+                if (item.inputs.matId === 'paint') {
+                    weightSpec = `表面附着涂装层\n${getWeightBasisText(item)}`;
+                } else {
+                    let formMap = { 'round': '三维立体(圆雕)', 'high': '高浮雕', 'low': '浅浮雕', 'flat': '平浮雕', 'line': '刻线' };
+                    let procMap = { 'forging': '金属下料、精密锻造、焊接成型', 'casting': '模具翻砂、金属熔炼、浇铸成型', 'other': '非金属材料加工、直塑或定制成型' };
+                    let fStr = formMap[item.inputs.form] || '定制形态';
+                    let pStr = procMap[item.inputs.proc] || '定制加工';
+                    weightSpec = `物理形态：${fStr}\n材质说明：${item.matCol}\n工艺方式：${pStr}\n${getWeightBasisText(item)}`;
+                }
+            } else {
+                weightSpec = `${weightSpec}\n${getWeightBasisText(item)}`;
+            }
+
+            currentRowIndex++;
+
+            wsData.push([
+                { v: "", s: cellS }, 
+                { v: groupIndex, s: { alignment:{horizontal:"center", vertical:"center"}, ...cellS} }, 
+                { v: displayName, s: cellS }, 
+                dCol, 
+                eCol, 
+                { v: item.matCol, s: cellS }, 
+                { v: weightSpec, s: cellS }, 
+                { v: qVal, s: cellS }, 
+                { v: uVal, s: cellS }, 
+                areaCol,
+                wCol, 
+                remarkCol 
+            ]);
+
+            if (groupStartMap[groupIndex] === undefined) {
+                groupStartMap[groupIndex] = currentRowIndex;
+            }
+            groupEndMap[groupIndex] = currentRowIndex;
+        }
+
+        for (let gi in groupStartMap) {
+            let start = groupStartMap[gi];
+            let end = groupEndMap[gi];
+            if (end > start) {
+                merges.push({ s: { r: start, c: 0 }, e: { r: end, c: 0 } });
+                merges.push({ s: { r: start, c: 1 }, e: { r: end, c: 1 } });
+            }
+        }
+
+        let totalRow = new Array(12).fill({ v: "", s: headerS });
+        merges.push({ s: {r: currentRowIndex + 1, c: 0}, e: {r: currentRowIndex + 1, c: 8} }); 
+        totalRow[0] = { v: "预估总重量汇总(kg)：", s: { font:{bold:true, color:{rgb:"FFFFFF"}}, alignment:{horizontal:"right", vertical:"center"}, fill:{fgColor:{rgb:"0f766e"}}, border:{top:{style:'thin'}, bottom:{style:'thin'}, left:{style:'thin'}, right:{style:'thin'}} } };
+        
+        totalRow[9] = { v: "-", s: headerS }; 
+        totalRow[10] = { f: `SUM(K3:K${currentRowIndex + 1})`, t: 'n', z: '#,##0.00', s: { ...headerS } }; 
+        totalRow[11] = { v: "-", s: headerS }; 
+        wsData.push(totalRow);
+
+        let noteRow = new Array(12).fill({ v: "", s: noteS });
+        noteRow[0] = { v: noteText, s: noteS };
+        wsData.push(noteRow);
+        merges.push({ s: {r: currentRowIndex + 2, c: 0}, e: {r: currentRowIndex + 2, c: 11} });
+
+        const ws = XLSX.utils.aoa_to_sheet([]);
+        XLSX.utils.sheet_add_aoa(ws, wsData, { origin: "A1" });
+        
+        ws['!merges'] = merges;
+        ws['!cols'] = [
+            {wch:6}, {wch:6}, {wch:18}, {wch:15}, {wch:12}, {wch:20}, 
+            {wch:45}, {wch:8}, {wch:6}, {wch:12}, {wch:15}, {wch:18}
+        ];
+
+        ws['!rows'] = [{hpt: 30}, {hpt: 30}]; 
+        ws['!rows'][currentRowIndex + 2] = { hpt: 60 };
+
+        XLSX.utils.book_append_sheet(wb, ws, "重量估算表");
+        XLSX.writeFile(wb, titleStr + ".xlsx");
+    }
+</script>
+
+</body>
+</html>
